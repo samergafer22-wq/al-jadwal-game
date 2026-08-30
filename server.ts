@@ -24,6 +24,13 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Direct assetlinks handler for Digital Asset Links verification (TWA / Android App)
+  app.get('/.well-known/assetlinks.json', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.sendFile(path.join(process.cwd(), 'public', '.well-known', 'assetlinks.json'));
+  });
+
   // Direct manifest handler to guarantee correct headers for PWA tools and TWA
   const sendManifest = (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');

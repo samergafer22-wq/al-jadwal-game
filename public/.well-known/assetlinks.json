@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.aljadwal.game",
+    "sha256_cert_fingerprints": ["EF:0D:CE:E9:F6:73:DD:29:3C:B7:9B:B8:31:E0:66:1E:A6:02:83:68:7F:4A:13:F6:E0:62:B3:09:DA:89:D9:9C"]
+  }
+}]
