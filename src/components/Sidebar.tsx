@@ -43,7 +43,7 @@ interface SidebarProps {
   unclaimedTasksCount?: number;
   onOpenLuckySpin?: () => void;
   onOpenAchievements?: () => void;
-  onOpenShop: () => void;
+  onOpenShop: (tab?: 'chests' | 'categories' | 'gems') => void;
   onOpenFriendChallenge: () => void;
   onOpenRewardedAd: () => void;
   onOpenAuth: () => void;
@@ -380,9 +380,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => {
                 soundManager.playClick();
                 onClose();
-                onOpenShop();
+                onOpenShop('categories');
               }}
-              className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-800/80 border border-transparent hover:border-slate-700 text-slate-300 hover:text-white transition-all group"
+              className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-800/80 border border-transparent hover:border-slate-700 text-slate-300 hover:text-white transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   ShoppingBag, 
@@ -151,6 +151,12 @@ export const ShopModal: React.FC<ShopModalProps> = ({
   const [categoryToConfirm, setCategoryToConfirm] = useState<CategoryDef | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   // Chest opening states
   const [openingChest, setOpeningChest] = useState<ChestDef | null>(null);
   const [isChestOpeningAnim, setIsChestOpeningAnim] = useState<boolean>(false);
@@ -209,8 +215,9 @@ export const ShopModal: React.FC<ShopModalProps> = ({
     if (!categoryToConfirm) return;
     const cat = categoryToConfirm;
     const price = cat.gemPrice || 40;
+    const currentGems = userProfile?.gems || 0;
 
-    if (userProfile.gems < price) {
+    if (currentGems < price) {
       soundManager.playError();
       showToast(`رصيد الجواهر غير كافٍ. تحتاج إلى ${price} 💎`);
       setActiveTab('gems');
@@ -233,7 +240,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
   };
 
   const isCategoryUnlocked = (id: string): boolean => {
-    const list = userProfile.unlockedCategories || [];
+    const list = userProfile?.unlockedCategories || [];
     if (list.includes(id)) return true;
     if (id === 'foods' && list.includes('food')) return true;
     if (id === 'tv_shows' && list.includes('series')) return true;
@@ -354,7 +361,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
   return (
     <div 
       id="shop-modal"
-      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
     >
       <div className="bg-slate-900 border-2 border-cyan-500/40 rounded-3xl p-5 sm:p-6 max-w-3xl w-full shadow-2xl space-y-5 my-auto animate-in fade-in zoom-in-95 duration-200">
         
@@ -384,7 +391,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
               <div className="text-right">
                 <span className="text-[10px] text-slate-400 block leading-none">نجومك</span>
                 <span className="text-xs font-black text-amber-400 font-['Cairo']">
-                  {userProfile.stars || 0}
+                  {userProfile?.stars || 0}
                 </span>
               </div>
             </div>
@@ -399,7 +406,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
               <div className="text-right">
                 <span className="text-[10px] text-slate-400 block leading-none">جواهرك</span>
                 <span className="text-xs font-black text-cyan-400 font-['Cairo']">
-                  {userProfile.gems || 0}
+                  {userProfile?.gems || 0}
                 </span>
               </div>
             </div>
@@ -652,7 +659,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
               {filteredCategories.map((cat) => {
                 const isUnlocked = isCategoryUnlocked(cat.id);
                 const price = cat.gemPrice || 40;
-                const canAfford = userProfile.gems >= price;
+                const canAfford = (userProfile?.gems || 0) >= price;
                 const sampleWords = getSampleWords(cat.id);
 
                 return (
@@ -943,7 +950,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
 
             <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-xs flex justify-between">
               <span className="text-slate-400">رصيدك الحالي:</span>
-              <span className="font-bold text-cyan-400">{userProfile.gems} 💎</span>
+              <span className="font-bold text-cyan-400">{(userProfile?.gems || 0)} 💎</span>
             </div>
 
             <div className="flex items-center gap-2 pt-2">

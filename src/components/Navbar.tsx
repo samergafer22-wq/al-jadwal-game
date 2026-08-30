@@ -23,7 +23,7 @@ import { checkIsAdmin } from '../lib/adminAuth';
 
 interface NavbarProps {
   userProfile: UserProfile | null;
-  onOpenShop: () => void;
+  onOpenShop: (tab?: 'chests' | 'categories' | 'gems') => void;
   onOpenRewardedAd: () => void;
   onOpenAuth: () => void;
   onLogout: () => void;
@@ -220,7 +220,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div 
             id="gems-wallet-badge"
             className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-cyan-500/30 transition-all cursor-pointer group"
-            onClick={onOpenShop}
+            onClick={() => {
+              soundManager.playClick();
+              onOpenShop('gems');
+            }}
             title="الجواهر: عملة مدفوعة لفتح فئات إضافية ومظاهر، غير قابلة للمراهنة"
           >
             <span className="text-lg">💎</span>
@@ -232,6 +235,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <button
               id="open-shop-quick-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                soundManager.playClick();
+                onOpenShop('categories');
+              }}
               className="mr-1 bg-cyan-500/20 group-hover:bg-cyan-500 text-cyan-300 group-hover:text-slate-950 text-[11px] font-bold px-1.5 py-0.5 rounded-lg transition-colors flex items-center gap-1"
             >
               <ShoppingBag className="w-3 h-3" />

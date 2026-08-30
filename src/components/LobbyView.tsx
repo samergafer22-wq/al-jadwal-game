@@ -36,7 +36,7 @@ interface LobbyViewProps {
   onOpenFriendChallenge: () => void;
   onStartBotMatch: () => void;
   onOpenRewardedAd: () => void;
-  onOpenShop: () => void;
+  onOpenShop: (tab?: 'chests' | 'categories' | 'gems') => void;
   onOpenLeaderboard: () => void;
   onOpenDailyChallenge: () => void;
   onOpenTasks?: () => void;
@@ -602,8 +602,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
           <button
             id="open-shop-categories-btn"
-            onClick={onOpenShop}
-            className="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 rounded-xl border border-cyan-500/30 transition-colors"
+            onClick={() => {
+              soundManager.playClick();
+              onOpenShop('categories');
+            }}
+            className="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 rounded-xl border border-cyan-500/30 transition-colors active:scale-95 cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>متجر الفئات</span>
@@ -626,11 +629,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 key={cat.id}
                 id={`category-item-${cat.id}`}
                 onClick={() => {
+                  soundManager.playClick();
                   if (isUnlocked) {
-                    soundManager.playClick();
                     onToggleCategory(cat.id);
                   } else {
-                    onOpenShop();
+                    onOpenShop('categories');
                   }
                 }}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between min-h-[95px] ${

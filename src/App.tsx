@@ -77,10 +77,39 @@ import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
 import { bootstrapAdminStatusIfNeeded } from './lib/adminAuth';
 
+// Helper to create or restore a fast offline guest profile
+const getInitialGuestProfile = (): UserProfile => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('aljadwal_guest_profile');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  return {
+    uid: 'guest_' + Math.random().toString(36).substring(2, 9),
+    displayName: 'لاعب ضيف',
+    stars: 100,
+    gems: 10,
+    hints: 3,
+    stats: { wins: 0, losses: 0, totalMatches: 0, roundsWon: 0, highestScore: 0 },
+    unlockedCategories: ['name', 'animal', 'plant', 'inanimate', 'country'],
+    unlockedThemes: ['classic'],
+    rewardedAdsToday: 0,
+    lastRewardDate: '',
+    matchesPlayedSinceLastInterstitial: 0,
+    createdAt: Date.now(),
+    lastSeen: Date.now(),
+  };
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile>(getInitialGuestProfile);
+  const [loadingUser, setLoadingUser] = useState(false);
 
   // Active Selected Categories (default 5 + any unlocked extras user wants)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([
@@ -98,6 +127,7 @@ export default function App() {
 
   // Modals & Drawers
   const [showShop, setShowShop] = useState(false);
+  const [shopInitialTab, setShopInitialTab] = useState<'chests' | 'categories' | 'gems'>('categories');
   const [selectedBillingPack, setSelectedBillingPack] = useState<GemShopPack | null>(null);
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [showInterstitialAd, setShowInterstitialAd] = useState(false);
@@ -1098,37 +1128,70 @@ export default function App() {
     }
   };
 
+  // Helper to open shop with specific tab
+  const handleOpenShop = (tab: 'chests' | 'categories' | 'gems' = 'categories') => {
+    soundManager.playClick();
+    setShopInitialTab(tab);
+    setShowShop(true);
+  };
+
   // 13. Shop: Buy Gems Pack (Google Play & Web Payments)
   const handleBuyGems = async (pack: GemShopPack) => {
-    if (!currentUser || !userProfile) return;
     const totalGems = pack.gems + pack.bonusGems;
     const newGems = (userProfile.gems || 0) + totalGems;
-    setUserProfile((prev) => (prev ? { ...prev, gems: newGems } : null));
+    setUserProfile((prev) => ({ ...prev, gems: newGems }));
     haptics.success();
     soundManager.playReward();
+
+    if (currentUser?.uid && !currentUser.uid.startsWith('guest_')) {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          gems: newGems,
+        });
+      } catch (e) {
+        console.warn('Firestore gems update note:', e);
+      }
+    } else {
+      try {
+        const guestData = { ...userProfile, gems: newGems };
+        localStorage.setItem('aljadwal_guest_profile', JSON.stringify(guestData));
+      } catch (e) {}
+    }
   };
 
   // 14. Shop: Unlock Category
   const handleUnlockCategory = async (categoryId: string) => {
-    if (!currentUser || !userProfile) return;
-    const res = await fetch('/api/shop/unlock-category', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        categoryId,
-        currentGems: userProfile.gems,
-      }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      const updatedList = [...userProfile.unlockedCategories, categoryId];
-      await updateDoc(doc(db, 'users', currentUser.uid), {
-        gems: data.remainingGems,
-        unlockedCategories: updatedList,
-      });
-      setSelectedCategoryIds((prev) => [...prev, categoryId]);
+    const cat = ALL_CATEGORIES.find(c => c.id === categoryId);
+    const price = cat?.gemPrice || 40;
+
+    if ((userProfile.gems || 0) < price) {
+      throw new Error(`رصيد الجواهر غير كافٍ. تحتاج إلى ${price} 💎`);
+    }
+
+    const remainingGems = Math.max(0, (userProfile.gems || 0) - price);
+    const updatedList = Array.from(new Set([...(userProfile.unlockedCategories || []), categoryId]));
+
+    setUserProfile((prev) => ({
+      ...prev,
+      gems: remainingGems,
+      unlockedCategories: updatedList,
+    }));
+    setSelectedCategoryIds((prev) => Array.from(new Set([...prev, categoryId])));
+
+    if (currentUser?.uid && !currentUser.uid.startsWith('guest_')) {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          gems: remainingGems,
+          unlockedCategories: updatedList,
+        });
+      } catch (err) {
+        console.warn('Firestore category unlock note:', err);
+      }
     } else {
-      throw new Error(data.error || 'فشل فتح الفئة');
+      try {
+        const guestData = { ...userProfile, gems: remainingGems, unlockedCategories: updatedList };
+        localStorage.setItem('aljadwal_guest_profile', JSON.stringify(guestData));
+      } catch (e) {}
     }
   };
 
@@ -1137,16 +1200,10 @@ export default function App() {
     cost: { stars?: number; gems?: number },
     reward: { stars: number; gems: number; hints: number; categoryId?: string }
   ) => {
-    if (!currentUser || !userProfile) return;
-    const userRef = doc(db, 'users', currentUser.uid);
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) return;
-    const data = snap.data();
-
-    const currentStars = data.stars || 0;
-    const currentGems = data.gems || 0;
-    const currentHints = data.hints || 3;
-    const currentCategories = data.unlockedCategories || [];
+    const currentStars = userProfile.stars || 0;
+    const currentGems = userProfile.gems || 0;
+    const currentHints = userProfile.hints || 3;
+    const currentCategories = userProfile.unlockedCategories || [];
 
     const newStars = Math.max(0, currentStars - (cost.stars || 0)) + (reward.stars || 0);
     const newGems = Math.max(0, currentGems - (cost.gems || 0)) + (reward.gems || 0);
@@ -1156,12 +1213,42 @@ export default function App() {
       newCategories.push(reward.categoryId);
     }
 
-    await updateDoc(userRef, {
+    setUserProfile((prev) => ({
+      ...prev,
       stars: newStars,
       gems: newGems,
       hints: newHints,
       unlockedCategories: newCategories,
-    });
+    }));
+
+    if (reward.categoryId) {
+      setSelectedCategoryIds((prev) => Array.from(new Set([...prev, reward.categoryId!])));
+    }
+
+    if (currentUser?.uid && !currentUser.uid.startsWith('guest_')) {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          stars: newStars,
+          gems: newGems,
+          hints: newHints,
+          unlockedCategories: newCategories,
+        });
+      } catch (err) {
+        console.warn('Firestore chest sync note:', err);
+      }
+    } else {
+      try {
+        const guestData = {
+          ...userProfile,
+          stars: newStars,
+          gems: newGems,
+          hints: newHints,
+          unlockedCategories: newCategories,
+        };
+        localStorage.setItem('aljadwal_guest_profile', JSON.stringify(guestData));
+      } catch (e) {}
+    }
   };
 
   // Toggle Category selection in Lobby
@@ -1347,7 +1434,7 @@ export default function App() {
       {/* Top Navigation */}
       <Navbar
         userProfile={userProfile}
-        onOpenShop={() => setShowShop(true)}
+        onOpenShop={handleOpenShop}
         onOpenRewardedAd={() => setShowRewardedAd(true)}
         onOpenAuth={() => setShowAuthModal(true)}
         onLogout={handleLogout}
@@ -1424,27 +1511,14 @@ export default function App() {
         ) : (
           /* LOBBY / HOME DASHBOARD */
           <LobbyView
-            userProfile={userProfile || {
-              uid: 'guest',
-              displayName: 'ضيف',
-              stars: 100,
-              gems: 0,
-              stats: { wins: 0, losses: 0, totalMatches: 0, roundsWon: 0, highestScore: 0 },
-              unlockedCategories: ['name', 'animal', 'plant', 'inanimate', 'country'],
-              unlockedThemes: ['classic'],
-              rewardedAdsToday: 0,
-              lastRewardDate: '',
-              matchesPlayedSinceLastInterstitial: 0,
-              createdAt: Date.now(),
-              lastSeen: Date.now(),
-            }}
+            userProfile={userProfile}
             selectedCategoryIds={selectedCategoryIds}
             onToggleCategory={handleToggleCategory}
             onStartQuickMatch={handleStartQuickMatch}
             onOpenFriendChallenge={() => setShowFriendModal(true)}
             onStartBotMatch={handleStartBotTraining}
             onOpenRewardedAd={() => setShowRewardedAd(true)}
-            onOpenShop={() => setShowShop(true)}
+            onOpenShop={handleOpenShop}
             onOpenLeaderboard={() => setShowLeaderboard(true)}
             onOpenDailyChallenge={() => setShowDailyChallenge(true)}
             onOpenTasks={() => setShowTasksModal(true)}
@@ -1470,7 +1544,7 @@ export default function App() {
         unclaimedTasksCount={tasksState ? countUnclaimedTasks(tasksState) : 0}
         onOpenLuckySpin={() => setShowLuckySpin(true)}
         onOpenAchievements={() => setShowAchievements(true)}
-        onOpenShop={() => setShowShop(true)}
+        onOpenShop={handleOpenShop}
         onOpenFriendChallenge={() => setShowFriendModal(true)}
         onOpenRewardedAd={() => setShowRewardedAd(true)}
         onOpenAuth={() => setShowAuthModal(true)}
@@ -1576,9 +1650,10 @@ export default function App() {
         />
       )}
 
-      {showShop && userProfile && (
+      {showShop && (
         <ShopModal
           userProfile={userProfile}
+          initialTab={shopInitialTab}
           onClose={() => setShowShop(false)}
           onSelectPackToBuy={(pack) => setSelectedBillingPack(pack)}
           onUnlockCategory={handleUnlockCategory}
