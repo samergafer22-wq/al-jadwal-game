@@ -7,14 +7,22 @@ import {
   AlertCircle,
   Smartphone,
   Info,
-  ExternalLink
+  ExternalLink,
+  Bug,
+  Copy,
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { GemShopPack, UserProfile } from '../types';
 import { soundManager } from '../lib/audio';
 import { 
   getGooglePlayDigitalGoodsService,
   executeGooglePlayPurchase,
-  DigitalGoodsService
+  checkBillingEnvironment,
+  fetchPlayStoreProductDetails,
+  BillingEnvironmentStatus,
+  DigitalGoodsService,
+  DigitalGoodsItem
 } from '../lib/paymentService';
 
 interface GooglePlayBillingSheetProps {
@@ -31,35 +39,52 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
   onSuccess,
 }) => {
   const [isCheckingService, setIsCheckingService] = useState(true);
-  const [digitalGoodsAvailable, setDigitalGoodsAvailable] = useState<boolean>(false);
+  const [envStatus, setEnvStatus] = useState<BillingEnvironmentStatus | null>(null);
+  const [playStoreItem, setPlayStoreItem] = useState<DigitalGoodsItem | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<'ready' | 'processing' | 'success' | 'error'>('ready');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showDevDetails, setShowDevDetails] = useState(false);
+  const [copiedDebug, setCopiedDebug] = useState(false);
 
   const totalGems = pack.gems + pack.bonusGems;
 
+  const runDiagnostics = async () => {
+    setIsCheckingService(true);
+    setErrorMessage(null);
+    try {
+      const status = await checkBillingEnvironment();
+      setEnvStatus(status);
+
+      if (status.isServiceAvailable) {
+        const details = await fetchPlayStoreProductDetails([pack.id]);
+        if (details && details.length > 0) {
+          setPlayStoreItem(details[0]);
+        }
+      }
+    } catch (err: any) {
+      console.error('[Google Play Billing Sheet] Diagnostics error:', err);
+    } finally {
+      setIsCheckingService(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
-    async function checkPlayBilling() {
-      setIsCheckingService(true);
-      const service: DigitalGoodsService | null = await getGooglePlayDigitalGoodsService();
-      if (isMounted) {
-        setDigitalGoodsAvailable(!!service);
-        setIsCheckingService(false);
-      }
-    }
-    checkPlayBilling();
+    runDiagnostics();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [pack.id]);
 
   const handleExecutePlayBilling = async () => {
     try {
       setIsProcessing(true);
       setStep('processing');
+      setErrorMessage(null);
       soundManager.playClick();
 
+      console.log(`[Google Play Billing Sheet] Triggering executeGooglePlayPurchase for pack ${pack.id}`);
       // Execute Google Play In-App Purchase via Digital Goods API
       await executeGooglePlayPurchase(pack, userProfile);
 
@@ -73,24 +98,43 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
         onClose();
       }, 1800);
     } catch (err: any) {
+      console.error('[Google Play Billing Sheet] Purchase execution failed:', err);
       setStep('error');
       setErrorMessage(err?.message || 'تعذر استكمال عملية الشراء عبر Google Play');
+      soundManager.playError();
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleCopyDebugInfo = () => {
+    const info = {
+      timestamp: new Date().toISOString(),
+      pack: { id: pack.id, price: pack.priceUsd, gems: totalGems },
+      envStatus,
+      playStoreItem,
+      userAgent: navigator.userAgent,
+      referrer: document.referrer,
+      isSecureContext: window.isSecureContext,
+    };
+    navigator.clipboard.writeText(JSON.stringify(info, null, 2));
+    setCopiedDebug(true);
+    setTimeout(() => setCopiedDebug(false), 2000);
+  };
+
+  const isDigitalGoodsAvailable = envStatus?.isServiceAvailable ?? false;
+
   return (
     <div 
       id="google-play-billing-sheet-overlay"
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200"
     >
       <div 
         id="google-play-billing-container"
-        className="w-full sm:max-w-md bg-[#1e2024] text-white rounded-t-3xl sm:rounded-3xl border-t sm:border border-slate-700/80 shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200"
+        className="w-full sm:max-w-md bg-[#1e2024] text-white rounded-t-3xl sm:rounded-3xl border-t sm:border border-slate-700/80 shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200 max-h-[92vh] flex flex-col"
       >
         {/* Top Header - Google Play Official Branding */}
-        <div className="bg-[#16171a] px-5 py-3.5 flex items-center justify-between border-b border-slate-800">
+        <div className="bg-[#16171a] px-5 py-3.5 flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">
             {/* Google Play Logo Badge */}
             <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shadow-inner">
@@ -135,13 +179,13 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto">
           
           {isCheckingService ? (
             <div className="py-10 text-center space-y-3">
               <Loader2 className="w-8 h-8 text-[#01875f] animate-spin mx-auto" />
               <p className="text-xs text-slate-400 font-['Cairo']">
-                جارٍ التحقق من خدمة Google Play Billing...
+                جارٍ التحقق من خدمة Google Play Billing و Digital Goods API...
               </p>
             </div>
           ) : step === 'processing' ? (
@@ -155,7 +199,7 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                   جارٍ معالجة وتأكيد الشراء عبر Google Play...
                 </h4>
                 <p className="text-xs text-slate-400 mt-1 font-['Cairo']">
-                  سيتم إضافة الجواهر فور تأكيد الدفع من Google Play
+                  سيتم استهلاك المنتج وإضافة {totalGems} جوهرة فور تأكيد الدفع من Google Play
                 </p>
               </div>
             </div>
@@ -172,7 +216,7 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
               </p>
             </div>
           ) : step === 'error' ? (
-            <div className="py-6 space-y-4 text-center">
+            <div className="py-4 space-y-4 text-center">
               <div className="w-12 h-12 bg-rose-500/20 border border-rose-500/40 rounded-2xl flex items-center justify-center mx-auto text-rose-400">
                 <AlertCircle className="w-6 h-6" />
               </div>
@@ -180,18 +224,28 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                 <h4 className="font-bold text-sm text-rose-400 font-['Cairo']">
                   لم تكتمل عملية الشراء
                 </h4>
-                <p className="text-xs text-slate-300 mt-1 font-['Cairo']">
+                <p className="text-xs text-slate-300 mt-1 font-['Cairo'] leading-relaxed bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-right">
                   {errorMessage}
                 </p>
               </div>
-              <button
-                onClick={() => setStep('ready')}
-                className="py-2.5 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition-all font-['Cairo'] cursor-pointer"
-              >
-                إعادة المحاولة
-              </button>
+              <div className="flex items-center gap-2 justify-center">
+                <button
+                  onClick={() => setStep('ready')}
+                  className="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition-all font-['Cairo'] cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>إعادة المحاولة</span>
+                </button>
+                <button
+                  onClick={() => setShowDevDetails(!showDevDetails)}
+                  className="py-2 px-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Bug className="w-3.5 h-3.5" />
+                  <span>تفاصيل التشخيص</span>
+                </button>
+              </div>
             </div>
-          ) : digitalGoodsAvailable ? (
+          ) : isDigitalGoodsAvailable ? (
             /* Digital Goods Service is Available (Inside Android TWA Google Play App) */
             <>
               {/* Item Card Details */}
@@ -210,7 +264,7 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                       )}
                     </h3>
                     <p className="text-xs text-slate-400 font-mono">
-                      {pack.id}
+                      {pack.id} {playStoreItem?.title ? `(${playStoreItem.title})` : ''}
                     </p>
                   </div>
                 </div>
@@ -220,7 +274,7 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                     ${pack.priceUsd}
                   </span>
                   <span className="text-[10px] text-slate-400 block font-['Cairo']">
-                    {pack.priceFormatted}
+                    {playStoreItem?.price ? `${playStoreItem.price.value} ${playStoreItem.price.currency}` : pack.priceFormatted}
                   </span>
                 </div>
               </div>
@@ -229,7 +283,7 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
               <div className="flex items-start gap-2.5 bg-[#17181a] p-3 rounded-2xl border border-slate-800 text-[11px] text-slate-300 text-right">
                 <ShieldCheck className="w-4 h-4 text-[#01875f] shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
-                  تتم عملية الشراء عبر <strong>Google Play Billing</strong> المعتمدة من Google، وسيتم خصم المبلغ عبر وسيلة الدفع المحفوظة في حسابك على متجر Play.
+                  تتم عملية الشراء عبر <strong>Google Play Billing</strong> المعتمدة من Google، وسيتم خصم المبلغ واستهلاك المنتج تلقائياً فور التأكيد.
                 </p>
               </div>
 
@@ -275,7 +329,7 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                   <span>الشراء متاح حصريًا عبر تطبيق Google Play</span>
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed font-['Cairo']">
-                  وفقًا لسياسات <strong>Google Play Payments Policy</strong>، تتم جميع عمليات شراء المحتوى الرقمي والجواهر حصريًا عبر نظام <strong>Google Play Billing</strong> المدمج في تطبيق أندرويد.
+                  وفقًا لسياسات <strong>Google Play Payments Policy</strong>، تتم جميع عمليات شراء المحتوى الرقمي والجواهر حصريًا عبر نظام <strong>Google Play Billing</strong> المدمج في تطبيق أندرويد (TWA).
                 </p>
                 <div className="bg-slate-900/60 rounded-xl p-2.5 text-[11px] text-slate-400 space-y-1">
                   <div className="flex items-center gap-1.5 text-slate-300 font-medium">
@@ -287,6 +341,15 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                   </p>
                 </div>
               </div>
+
+              {/* Direct Purchase Attempt Button for Testing / TWA Fallback */}
+              <button
+                id="force-try-play-billing-btn"
+                onClick={handleExecutePlayBilling}
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold font-['Cairo'] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <span>محاولة بدء عملية الشراء عبر Google Play</span>
+              </button>
 
               {/* Close Button */}
               <button
@@ -302,8 +365,47 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
             </div>
           )}
 
+          {/* Collapsible Developer Diagnostics Section */}
+          <div className="pt-2 border-t border-slate-800/80">
+            <button
+              onClick={() => setShowDevDetails(!showDevDetails)}
+              className="text-[11px] text-slate-500 hover:text-slate-400 flex items-center gap-1 mx-auto cursor-pointer"
+            >
+              <Bug className="w-3 h-3" />
+              <span>{showDevDetails ? 'إخفاء بيانات الفحص الفني' : 'عرض تشخيص Google Play Billing (للمطور)'}</span>
+            </button>
+
+            {showDevDetails && (
+              <div className="mt-2 p-3 bg-slate-950 rounded-2xl border border-slate-800 text-[11px] font-mono text-left space-y-2 animate-in fade-in">
+                <div className="flex items-center justify-between text-slate-400 border-b border-slate-900 pb-1.5">
+                  <span className="font-bold">Play Billing Diagnostics:</span>
+                  <button
+                    onClick={handleCopyDebugInfo}
+                    className="flex items-center gap-1 text-[10px] bg-slate-900 hover:bg-slate-800 px-2 py-0.5 rounded text-cyan-400 cursor-pointer"
+                  >
+                    {copiedDebug ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedDebug ? 'تم النسخ' : 'نسخ'}</span>
+                  </button>
+                </div>
+                <div className="space-y-1 text-slate-300">
+                  <div>SKU: <strong className="text-cyan-400">{pack.id}</strong> (${pack.priceUsd})</div>
+                  <div>window.getDigitalGoodsService: <span className={envStatus?.hasDigitalGoodsApi ? 'text-emerald-400' : 'text-rose-400'}>{envStatus?.hasDigitalGoodsApi ? 'YES' : 'NO'}</span></div>
+                  <div>window.PaymentRequest: <span className={envStatus?.hasPaymentRequest ? 'text-emerald-400' : 'text-rose-400'}>{envStatus?.hasPaymentRequest ? 'YES' : 'NO'}</span></div>
+                  <div>Service Available: <span className={envStatus?.isServiceAvailable ? 'text-emerald-400' : 'text-amber-400'}>{envStatus?.isServiceAvailable ? 'YES (TWA Connected)' : 'NO (Browser/Non-TWA)'}</span></div>
+                  <div>TWA / Standalone: <span className={envStatus?.isStandaloneOrTwa ? 'text-emerald-400' : 'text-slate-400'}>{envStatus?.isStandaloneOrTwa ? 'YES' : 'NO'}</span></div>
+                  {envStatus?.serviceError && (
+                    <div className="text-rose-400 break-words mt-1">
+                      Note: {envStatus.serviceError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
     </div>
   );
 };
+
