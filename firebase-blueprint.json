@@ -1,0 +1,141 @@
+{
+  "entities": {
+    "UserProfile": {
+      "collection": "users",
+      "fields": {
+        "uid": { "type": "string", "description": "Unique user Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "Player screen name" },
+        "photoURL": { "type": "string", "description": "Avatar URL" },
+        "email": { "type": "string", "description": "Player email" },
+        "stars": { "type": "number", "description": "Free challenge stars balance (default 100)" },
+        "gems": { "type": "number", "description": "Purchased gems balance" },
+        "stats": {
+          "type": "object",
+          "description": "Player statistics: wins, losses, totalMatches, roundsWon, highestScore"
+        },
+        "unlockedCategories": {
+          "type": "array",
+          "description": "List of unlocked category IDs (e.g. ['standard', 'food', 'series', 'capitals'])"
+        },
+        "rewardedAdsToday": { "type": "number", "description": "Daily rewarded ad views count (max 3/day)" },
+        "lastRewardDate": { "type": "string", "description": "YYYY-MM-DD for reward resets" },
+        "lastSeen": { "type": "number", "description": "Timestamp for online status" },
+        "createdAt": { "type": "number", "description": "Account creation timestamp" }
+      }
+    },
+    "Match": {
+      "collection": "matches",
+      "fields": {
+        "id": { "type": "string", "description": "Unique match ID or room code" },
+        "status": { "type": "string", "description": "waiting | choosing_letter | playing | round_review | dispute | finished | cancelled" },
+        "creatorId": { "type": "string", "description": "Player 1 UID" },
+        "guestId": { "type": "string", "description": "Player 2 UID" },
+        "players": { "type": "array", "description": "[creatorId, guestId]" },
+        "playerDetails": { "type": "object", "description": "Map of player profile summaries { [uid]: { displayName, photoURL, stars } }" },
+        "betStars": { "type": "number", "description": "Challenge stars wagered per player (e.g. 20)" },
+        "totalPot": { "type": "number", "description": "Total stars pot won by match victor (e.g. 40)" },
+        "currentRound": { "type": "number", "description": "1, 2, 3 (Best of 3)" },
+        "maxRounds": { "type": "number", "description": "Default 3 (Best of 3)" },
+        "letterPickerId": { "type": "string", "description": "UID of player whose turn is to choose letter" },
+        "currentLetter": { "type": "string", "description": "Arabic letter chosen for current round" },
+        "isRareLetter": { "type": "boolean", "description": "Whether chosen letter is rare (ذ، ظ، ض، ث، خ) doubling score (x2)" },
+        "categories": { "type": "array", "description": "Active categories for the match ['name', 'animal', 'plant', 'inanimate', 'country']" },
+        "roundStartTime": { "type": "number", "description": "Unix timestamp in ms when 45s timer started" },
+        "roundDurationSec": { "type": "number", "description": "45 seconds" },
+        "stoppedBy": { "type": "string", "description": "UID of player who hit STOP button after filling all fields" },
+        "stoppedAt": { "type": "number", "description": "Timestamp when stop was triggered" },
+        "answers": {
+          "type": "object",
+          "description": "Answers submitted for current round: { [uid]: { [categoryKey]: string } }"
+        },
+        "progress": {
+          "type": "object",
+          "description": "Live progress during round: { [uid]: count_of_filled_fields } (0 to totalCategories)"
+        },
+        "roundScores": {
+          "type": "object",
+          "description": "Calculated scores per round: { [roundNumber]: { [uid]: { score, breakdown: { [cat]: { word, valid, unique, points, opponentWord } } } } }"
+        },
+        "matchScores": {
+          "type": "object",
+          "description": "Accumulated match score and round wins: { [uid]: { totalPoints, roundsWon } }"
+        },
+        "disputes": {
+          "type": "object",
+          "description": "Active word objections during review: { [categoryKey]: { raisedBy, targetUid, word, status: 'open' | 'withdrawn' | 'justified', justification, expiresAt } }"
+        },
+        "winnerId": { "type": "string", "description": "UID of winning player or 'draw'" },
+        "createdAt": { "type": "number", "description": "Match creation timestamp" },
+        "updatedAt": { "type": "number", "description": "Last update timestamp" }
+      }
+    },
+    "Matchmaking": {
+      "collection": "matchmaking",
+      "fields": {
+        "uid": { "type": "string", "description": "Player waiting for match" },
+        "displayName": { "type": "string", "description": "Player name" },
+        "photoURL": { "type": "string", "description": "Player avatar" },
+        "stars": { "type": "number", "description": "Player stars" },
+        "createdAt": { "type": "number", "description": "Queue join timestamp" },
+        "matchId": { "type": "string", "description": "Created match ID when paired" }
+      }
+    },
+    "DailyChallengeParticipant": {
+      "collection": "daily_challenges/{dateKey}/participants",
+      "fields": {
+        "uid": { "type": "string", "description": "Participant UID" },
+        "displayName": { "type": "string", "description": "Participant display name" },
+        "photoURL": { "type": "string", "description": "Participant photo URL" },
+        "dateKey": { "type": "string", "description": "YYYY-MM-DD" },
+        "letter": { "type": "string", "description": "Today's common letter" },
+        "categories": { "type": "array", "description": "Today's category IDs" },
+        "answers": { "type": "object", "description": "Filled answers map" },
+        "score": { "type": "number", "description": "Total points achieved" },
+        "timeTakenSeconds": { "type": "number", "description": "Time elapsed to submit (seconds)" },
+        "completedAt": { "type": "number", "description": "Submission timestamp" }
+      }
+    },
+    "UserTasks": {
+      "collection": "user_tasks",
+      "fields": {
+        "uid": { "type": "string", "description": "User UID owning the tasks state" },
+        "dailyDateKey": { "type": "string", "description": "Current date key (YYYY-MM-DD) for daily task cycle" },
+        "weeklyDateKey": { "type": "string", "description": "Current week key (YYYY-Www) for weekly task cycle" },
+        "tasks": { "type": "object", "description": "Map of taskId to progress: { [taskId]: { taskId, currentCount, completed, claimed, claimedAt } }" },
+        "weeklyBonusClaimed": { "type": "boolean", "description": "Whether the weekly mega bonus chest was claimed" },
+        "updatedAt": { "type": "number", "description": "Last update timestamp" }
+      }
+    },
+    "SystemConfig": {
+      "collection": "system_config",
+      "fields": {
+        "roundDuration": { "type": "number", "description": "Custom default round duration (seconds)" },
+        "defaultStars": { "type": "number", "description": "Default stars for new accounts" },
+        "maintenanceMode": { "type": "boolean", "description": "Whether maintenance mode is active" },
+        "doubleStarsActive": { "type": "boolean", "description": "Double stars promotional event" },
+        "updatedAt": { "type": "number", "description": "Config update timestamp" },
+        "updatedBy": { "type": "string", "description": "Admin UID who updated config" }
+      }
+    },
+    "GlobalAnnouncement": {
+      "collection": "announcements",
+      "fields": {
+        "id": { "type": "string", "description": "Announcement ID" },
+        "message": { "type": "string", "description": "Broadcast message text" },
+        "type": { "type": "string", "description": "info | success | warning | promo" },
+        "isActive": { "type": "boolean", "description": "Active state" },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      }
+    },
+    "WordBankOverride": {
+      "collection": "word_bank_overrides",
+      "fields": {
+        "word": { "type": "string", "description": "Normalized Arabic word" },
+        "categoryId": { "type": "string", "description": "Category ID" },
+        "isAccepted": { "type": "boolean", "description": "True if whitelisted, false if blacklisted" },
+        "addedBy": { "type": "string", "description": "Admin email or UID" },
+        "addedAt": { "type": "number", "description": "Timestamp" }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "الجدول",
+  "description": "لعبة الجدول العربية الكلاسيكية - تحدي اسم حيوان نبات جماد بلاد بين لاعبين",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
