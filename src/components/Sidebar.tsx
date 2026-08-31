@@ -43,7 +43,7 @@ interface SidebarProps {
   unclaimedTasksCount?: number;
   onOpenLuckySpin?: () => void;
   onOpenAchievements?: () => void;
-  onOpenShop: (tab?: 'chests' | 'categories' | 'gems') => void;
+  onOpenShop: (tab?: 'chests' | 'avatars' | 'categories' | 'gems') => void;
   onOpenFriendChallenge: () => void;
   onOpenRewardedAd: () => void;
   onOpenAuth: () => void;
@@ -409,7 +409,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => {
                 soundManager.playClick();
                 onClose();
-                onOpenShop('categories');
+                onOpenShop('chests');
               }}
               className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-800/80 border border-transparent hover:border-slate-700 text-slate-300 hover:text-white transition-all group cursor-pointer"
             >
@@ -418,7 +418,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <ShoppingBag className="w-4 h-4" />
                 </div>
                 <span className="font-bold text-sm font-['Cairo']">
-                  متجر الفئات والجواهر
+                  متجر الصناديق والفئات والجواهر 🎁
+                </span>
+              </div>
+              <ChevronLeft className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-transform group-hover:-translate-x-0.5" />
+            </button>
+
+            {/* Exclusive Avatars Item */}
+            <button
+              id="sidebar-nav-avatars"
+              onClick={() => {
+                soundManager.playClick();
+                onClose();
+                onOpenShop('avatars');
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-800/80 border border-transparent hover:border-slate-700 text-slate-300 hover:text-white transition-all group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Crown className="w-4 h-4" />
+                </div>
+                <span className="font-bold text-sm font-['Cairo']">
+                  أيقونات ومظاهر البروفايل 👑
                 </span>
               </div>
               <ChevronLeft className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-transform group-hover:-translate-x-0.5" />

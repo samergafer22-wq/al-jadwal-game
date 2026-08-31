@@ -36,7 +36,7 @@ interface LobbyViewProps {
   onOpenFriendChallenge: () => void;
   onStartBotMatch: () => void;
   onOpenRewardedAd: () => void;
-  onOpenShop: (tab?: 'chests' | 'categories' | 'gems') => void;
+  onOpenShop: (tab?: 'chests' | 'avatars' | 'categories' | 'gems') => void;
   onOpenLeaderboard: () => void;
   onOpenDailyChallenge: () => void;
   onOpenTasks?: () => void;

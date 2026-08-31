@@ -35,7 +35,8 @@ import {
   UserTasksState,
   TaskDefinition,
   TaskActionType,
-  LuckySpinReward
+  LuckySpinReward,
+  AvatarItemDef
 } from './types';
 import { STANDARD_CATEGORIES, RARE_LETTERS_SET, ALL_CATEGORIES } from './data/categories';
 import { evaluateRoundAnswers } from './lib/arabicUtils';
@@ -128,7 +129,7 @@ export default function App() {
 
   // Modals & Drawers
   const [showShop, setShowShop] = useState(false);
-  const [shopInitialTab, setShopInitialTab] = useState<'chests' | 'categories' | 'gems'>('categories');
+  const [shopInitialTab, setShopInitialTab] = useState<'chests' | 'avatars' | 'categories' | 'gems'>('chests');
   const [selectedBillingPack, setSelectedBillingPack] = useState<GemShopPack | null>(null);
   const [showRewardedAd, setShowRewardedAd] = useState(false);
   const [showInterstitialAd, setShowInterstitialAd] = useState(false);
@@ -1177,7 +1178,7 @@ export default function App() {
   };
 
   // Helper to open shop with specific tab
-  const handleOpenShop = (tab: 'chests' | 'categories' | 'gems' = 'categories') => {
+  const handleOpenShop = (tab: 'chests' | 'avatars' | 'categories' | 'gems' = 'chests') => {
     soundManager.playClick();
     setShopInitialTab(tab);
     setShowShop(true);
@@ -1293,6 +1294,79 @@ export default function App() {
           gems: newGems,
           hints: newHints,
           unlockedCategories: newCategories,
+        };
+        localStorage.setItem('aljadwal_guest_profile', JSON.stringify(guestData));
+      } catch (e) {}
+    }
+  };
+
+  // 14c. Shop: Buy Avatar Cosmetic Item
+  const handleBuyAvatar = async (avatar: AvatarItemDef) => {
+    if (!currentUser || !userProfile) return;
+    const currentGems = userProfile.gems || 0;
+    if (currentGems < avatar.priceGems) {
+      alert(`رصيد الجواهر غير كافٍ. تحتاج إلى ${avatar.priceGems} 💎`);
+      return;
+    }
+
+    const nextGems = currentGems - avatar.priceGems;
+    const nextUnlockedAvatars = Array.from(new Set([...(userProfile.unlockedAvatars || []), avatar.id]));
+    const nextSelectedAvatar = avatar.id;
+
+    setUserProfile((prev) => ({
+      ...prev!,
+      gems: nextGems,
+      unlockedAvatars: nextUnlockedAvatars,
+      selectedAvatar: nextSelectedAvatar,
+    }));
+
+    if (currentUser?.uid && !currentUser.uid.startsWith('guest_')) {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          gems: nextGems,
+          unlockedAvatars: nextUnlockedAvatars,
+          selectedAvatar: nextSelectedAvatar,
+        });
+      } catch (err) {
+        console.warn('Firestore avatar buy note:', err);
+      }
+    } else {
+      try {
+        const guestData = {
+          ...userProfile,
+          gems: nextGems,
+          unlockedAvatars: nextUnlockedAvatars,
+          selectedAvatar: nextSelectedAvatar,
+        };
+        localStorage.setItem('aljadwal_guest_profile', JSON.stringify(guestData));
+      } catch (e) {}
+    }
+  };
+
+  // 14d. Shop: Equip Avatar Cosmetic Item
+  const handleEquipAvatar = async (avatarId: string) => {
+    if (!currentUser || !userProfile) return;
+
+    setUserProfile((prev) => ({
+      ...prev!,
+      selectedAvatar: avatarId,
+    }));
+
+    if (currentUser?.uid && !currentUser.uid.startsWith('guest_')) {
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          selectedAvatar: avatarId,
+        });
+      } catch (err) {
+        console.warn('Firestore avatar equip note:', err);
+      }
+    } else {
+      try {
+        const guestData = {
+          ...userProfile,
+          selectedAvatar: avatarId,
         };
         localStorage.setItem('aljadwal_guest_profile', JSON.stringify(guestData));
       } catch (e) {}
@@ -1754,6 +1828,8 @@ export default function App() {
           onClose={() => setShowShop(false)}
           onSelectPackToBuy={(pack) => setSelectedBillingPack(pack)}
           onUnlockCategory={handleUnlockCategory}
+          onBuyAvatar={handleBuyAvatar}
+          onEquipAvatar={handleEquipAvatar}
           onClaimChestReward={handleClaimChestReward}
         />
       )}

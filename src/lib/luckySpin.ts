@@ -15,14 +15,14 @@ export interface WheelSegmentDef {
 }
 
 export const OFFICIAL_WHEEL_SEGMENTS: WheelSegmentDef[] = [
-  { id: 0, label: '50 جوهرة', type: 'gems', amount: 50, color: '#f59e0b', textColor: '#0f172a', icon: 'gem', isRare: true, weight: 4 },
-  { id: 1, label: '100 نجمة', type: 'stars', amount: 100, color: '#3b82f6', textColor: '#ffffff', icon: 'star', weight: 24 },
-  { id: 2, label: '3 تلميحات', type: 'hints', amount: 3, color: '#10b981', textColor: '#ffffff', icon: 'hint', weight: 18 },
-  { id: 3, label: '15 جوهرة', type: 'gems', amount: 15, color: '#ec4899', textColor: '#ffffff', icon: 'gem', weight: 14 },
-  { id: 4, label: '250 نجمة', type: 'stars', amount: 250, color: '#8b5cf6', textColor: '#ffffff', icon: 'star', isRare: true, weight: 6 },
-  { id: 5, label: '1 تلميح', type: 'hints', amount: 1, color: '#06b6d4', textColor: '#ffffff', icon: 'hint', weight: 20 },
-  { id: 6, label: '25 جوهرة', type: 'gems', amount: 25, color: '#f97316', textColor: '#ffffff', icon: 'gem', weight: 10 },
-  { id: 7, label: '50 نجمة', type: 'stars', amount: 50, color: '#14b8a6', textColor: '#ffffff', icon: 'star', weight: 24 },
+  { id: 0, label: '5 جواهر', type: 'gems', amount: 5, color: '#f59e0b', textColor: '#0f172a', icon: 'gem', isRare: true, weight: 3 },
+  { id: 1, label: '100 نجمة', type: 'stars', amount: 100, color: '#3b82f6', textColor: '#ffffff', icon: 'star', weight: 26 },
+  { id: 2, label: '2 تلميح', type: 'hints', amount: 2, color: '#10b981', textColor: '#ffffff', icon: 'hint', weight: 20 },
+  { id: 3, label: '2 جوهرة', type: 'gems', amount: 2, color: '#ec4899', textColor: '#ffffff', icon: 'gem', weight: 5 },
+  { id: 4, label: '250 نجمة', type: 'stars', amount: 250, color: '#8b5cf6', textColor: '#ffffff', icon: 'star', isRare: true, weight: 8 },
+  { id: 5, label: '1 تلميح', type: 'hints', amount: 1, color: '#06b6d4', textColor: '#ffffff', icon: 'hint', weight: 24 },
+  { id: 6, label: '3 جواهر', type: 'gems', amount: 3, color: '#f97316', textColor: '#ffffff', icon: 'gem', weight: 4 },
+  { id: 7, label: '60 نجمة', type: 'stars', amount: 60, color: '#14b8a6', textColor: '#ffffff', icon: 'star', weight: 30 },
 ];
 
 /**

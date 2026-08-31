@@ -23,7 +23,7 @@ import { checkIsAdmin } from '../lib/adminAuth';
 
 interface NavbarProps {
   userProfile: UserProfile | null;
-  onOpenShop: (tab?: 'chests' | 'categories' | 'gems') => void;
+  onOpenShop: (tab?: 'chests' | 'avatars' | 'categories' | 'gems') => void;
   onOpenRewardedAd: () => void;
   onOpenAuth: () => void;
   onLogout: () => void;

@@ -30,6 +30,8 @@ export interface UserProfile {
   unlockedCategories: string[]; // e.g. ['name', 'animal', 'plant', 'inanimate', 'country']
   unlockedThemes: string[];
   activeTheme?: string;
+  unlockedAvatars?: string[]; // Purchasable avatar item IDs
+  selectedAvatar?: string; // Active avatar ID or URL
   rewardedAdsToday: number; // Max 3 per day
   lastRewardDate: string; // YYYY-MM-DD
   matchesPlayedSinceLastInterstitial: number;
@@ -206,6 +208,19 @@ export interface GemShopPack {
   priceUsd: string;
   priceFormatted: string;
   popular?: boolean;
+}
+
+export interface AvatarItemDef {
+  id: string;
+  name: string;
+  priceGems: number;
+  emoji: string;
+  tag: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  description: string;
+  iconBg: string;
+  borderClass: string;
+  badgeColor: string;
 }
 
 export interface DailyChallengeConfig {

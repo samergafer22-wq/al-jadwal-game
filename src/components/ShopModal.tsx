@@ -24,9 +24,12 @@ import {
   Home,
   PartyPopper,
   Zap,
-  Lightbulb
+  Lightbulb,
+  UserCheck,
+  Flame,
+  Star
 } from 'lucide-react';
-import { UserProfile, GemShopPack, CategoryDef } from '../types';
+import { UserProfile, GemShopPack, CategoryDef, AvatarItemDef } from '../types';
 import { EXTRA_CATEGORIES, ARABIC_WORD_BANK } from '../data/categories';
 import { soundManager } from '../lib/audio';
 import { haptics } from '../lib/haptics';
@@ -53,8 +56,8 @@ export const REWARD_CHESTS: ChestDef[] = [
     tier: 'bronze',
     costType: 'gems',
     costAmount: 10,
-    description: 'يحتوي على رصيد نجوم إضافية مع فرصة تلميحات واسترجاع جواهر.',
-    oddsDescription: '100% نجوم (20-45 ⭐) • 50% تلميح 💡 • 20% جوهرة 💎',
+    description: 'يحتوي على رصيد نجوم إضافية مع فرصة تلميحات.',
+    oddsDescription: '100% نجوم (20-45 ⭐) • 35% تلميح 💡 • 5% استرداد (1 💎)',
     badge: 'شائع 🥉',
     accentColor: 'border-amber-700/60',
     iconBg: 'from-amber-800 to-amber-950',
@@ -66,8 +69,8 @@ export const REWARD_CHESTS: ChestDef[] = [
     tier: 'silver',
     costType: 'gems',
     costAmount: 15,
-    description: 'يحتوي على رصيد وفير من النجوم وتلميحات مضمونة وجواهر قيّمة.',
-    oddsDescription: '100% نجوم (45-90 ⭐) • 100% تلميحات (1-2 💡) • 50% جواهر (1-3 💎)',
+    description: 'يحتوي على رصيد وفير من النجوم وتلميحات مضمونة.',
+    oddsDescription: '100% نجوم (45-90 ⭐) • 100% تلميحات (1-2 💡) • 10% استرداد (1 💎)',
     badge: 'نادر 🥈',
     accentColor: 'border-cyan-400/60',
     iconBg: 'from-cyan-700 to-blue-950',
@@ -80,11 +83,74 @@ export const REWARD_CHESTS: ChestDef[] = [
     costType: 'gems',
     costAmount: 25,
     description: 'صندوق فاخر يمنح رصيداً ضخماً من النجوم والتلميحات وفرصة فتح فئة جديدة!',
-    oddsDescription: '100% نجوم (120-220 ⭐) • 100% تلميحات (2-4 💡) • 35% فتح فئة مقفلة 🔓 • 60% جواهر (2-5 💎)',
+    oddsDescription: '100% نجوم (120-200 ⭐) • 100% تلميحات (2-3 💡) • 25% فتح فئة مقفلة 🔓 • 15% استرداد (1-2 💎)',
     badge: 'أسطوري 👑',
     accentColor: 'border-amber-400',
     iconBg: 'from-amber-500 to-yellow-600',
     glowColor: 'shadow-amber-500/40',
+  },
+];
+
+export const AVATAR_ITEMS: AvatarItemDef[] = [
+  {
+    id: 'avatar_crown',
+    name: 'تاج الفارس الذهبي',
+    priceGems: 5,
+    emoji: '👑',
+    tag: 'كلاسيكي ⭐',
+    rarity: 'common',
+    description: 'رمز التاج الملكي الذهبي لبروفايلك يعكس فخامة مشاركتك في جولات الحروف.',
+    iconBg: 'from-amber-500/30 to-yellow-600/30',
+    borderClass: 'border-amber-500/50 hover:border-amber-400',
+    badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+  },
+  {
+    id: 'avatar_falcon',
+    name: 'صقر الصحراء الأسطوري',
+    priceGems: 10,
+    emoji: '🦅',
+    tag: 'مميز 🦅',
+    rarity: 'rare',
+    description: 'شعار الصقر الجارح لسرعة البديهة والضغط على زر قف في أجزاء من الثانية.',
+    iconBg: 'from-cyan-500/30 to-blue-600/30',
+    borderClass: 'border-cyan-400/50 hover:border-cyan-300',
+    badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+  },
+  {
+    id: 'avatar_diamond',
+    name: 'نجم الألماس البراق',
+    priceGems: 15,
+    emoji: '💎',
+    tag: 'نادر 💎',
+    rarity: 'epic',
+    description: 'أيقونة بلورية متوهجة تمنح اسمك وحسابك لمعاناً أسطورياً في قوائم المتصدرين.',
+    iconBg: 'from-purple-500/30 to-pink-600/30',
+    borderClass: 'border-pink-500/50 hover:border-pink-400',
+    badgeColor: 'text-pink-400 bg-pink-500/10 border-pink-500/30',
+  },
+  {
+    id: 'avatar_flame',
+    name: 'شعلة النصر الحارقة',
+    priceGems: 20,
+    emoji: '🔥',
+    tag: 'حماسي 🔥',
+    rarity: 'epic',
+    description: 'رمز شعلة اللهب المتوقدة للمحترفين أصحاب السلاسل الخارقة من الانتصارات.',
+    iconBg: 'from-orange-500/30 to-red-600/30',
+    borderClass: 'border-orange-500/50 hover:border-orange-400',
+    badgeColor: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+  },
+  {
+    id: 'avatar_lion',
+    name: 'عرش الأساطير الإمبراطوري',
+    priceGems: 30,
+    emoji: '🦁',
+    tag: 'أسطوري 🦁',
+    rarity: 'legendary',
+    description: 'الشارة الملكية الأرفع والأعلى قيمة في اللعبة، تمنح حضورك هيبة الملوك والأبطال.',
+    iconBg: 'from-yellow-400/30 to-amber-700/30',
+    borderClass: 'border-yellow-400 hover:border-yellow-300',
+    badgeColor: 'text-yellow-300 bg-yellow-500/20 border-yellow-400/50',
   },
 ];
 
@@ -102,9 +168,11 @@ interface ShopModalProps {
   onClose: () => void;
   onSelectPackToBuy: (pack: GemShopPack) => void;
   onUnlockCategory: (categoryId: string) => Promise<void>;
+  onBuyAvatar?: (avatar: AvatarItemDef) => Promise<void>;
+  onEquipAvatar?: (avatarId: string) => Promise<void>;
   onClaimChestReward?: (cost: { stars?: number; gems?: number }, reward: { stars: number; gems: number; hints: number; categoryId?: string }) => Promise<void>;
   preselectedCategory?: string | null;
-  initialTab?: 'chests' | 'categories' | 'gems';
+  initialTab?: 'chests' | 'avatars' | 'categories' | 'gems';
 }
 
 export const GEM_PACKS: GemShopPack[] = [
@@ -144,14 +212,17 @@ export const ShopModal: React.FC<ShopModalProps> = ({
   onClose,
   onSelectPackToBuy,
   onUnlockCategory,
+  onBuyAvatar,
+  onEquipAvatar,
   onClaimChestReward,
   preselectedCategory,
   initialTab = 'chests',
 }) => {
-  const [activeTab, setActiveTab] = useState<'chests' | 'categories' | 'gems'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'chests' | 'avatars' | 'categories' | 'gems'>(initialTab);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'media' | 'places' | 'culture' | 'general'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isUnlockingCatId, setIsUnlockingCatId] = useState<string | null>(null);
+  const [isProcessingAvatarId, setIsProcessingAvatarId] = useState<string | null>(null);
   const [categoryToConfirm, setCategoryToConfirm] = useState<CategoryDef | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -169,6 +240,46 @@ export const ShopModal: React.FC<ShopModalProps> = ({
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleBuyOrEquipAvatar = async (avatar: AvatarItemDef) => {
+    const isUnlocked = userProfile?.unlockedAvatars?.includes(avatar.id);
+    const isSelected = userProfile?.selectedAvatar === avatar.id;
+
+    if (isSelected) {
+      showToast('المظهر مفعّل على حسابك بالفعل! ✨');
+      return;
+    }
+
+    if (isUnlocked) {
+      // Equip
+      if (onEquipAvatar) {
+        setIsProcessingAvatarId(avatar.id);
+        soundManager.playClick();
+        await onEquipAvatar(avatar.id);
+        setIsProcessingAvatarId(null);
+        showToast(`تم تفعيل مظهر (${avatar.name}) بنجاح! 👑`);
+      }
+      return;
+    }
+
+    // Need to buy
+    if ((userProfile?.gems || 0) < avatar.priceGems) {
+      soundManager.playError();
+      showToast(`تحتاج إلى ${avatar.priceGems} 💎 لشراء هذا المظهر. يمكنك شحن الجواهر من المتجر.`);
+      setActiveTab('gems');
+      return;
+    }
+
+    if (onBuyAvatar) {
+      setIsProcessingAvatarId(avatar.id);
+      soundManager.playVictory();
+      haptics.victory();
+      triggerSmallRewardConfetti();
+      await onBuyAvatar(avatar);
+      setIsProcessingAvatarId(null);
+      showToast(`مبارك! تم شراء وتفعيل مظهر (${avatar.name}) بنجاح! 🎉`);
+    }
   };
 
   const getCategoryIcon = (iconName: string, id: string) => {
@@ -275,24 +386,24 @@ export const ShopModal: React.FC<ShopModalProps> = ({
     let wonCategory: CategoryDef | undefined = undefined;
 
     if (chest.tier === 'bronze') {
-      // Bronze: Cost 10 Gems -> 20 - 45 Stars, 50% 1 hint, 20% 1 gem rebate
+      // Bronze: Cost 10 Gems -> 20 - 45 Stars, 35% 1 hint, 5% 1 gem rebate
       wonStars = Math.floor(Math.random() * 26) + 20; // 20 - 45
-      wonHints = Math.random() > 0.5 ? 1 : 0;
-      wonGems = Math.random() > 0.8 ? 1 : 0;
+      wonHints = Math.random() > 0.65 ? 1 : 0;
+      wonGems = Math.random() > 0.95 ? 1 : 0;
     } else if (chest.tier === 'silver') {
-      // Silver: Cost 15 Gems -> 45 - 90 Stars, 1 - 2 hints, 50% 1 - 3 gems rebate
+      // Silver: Cost 15 Gems -> 45 - 90 Stars, 1 - 2 hints, 10% 1 gem rebate
       wonStars = Math.floor(Math.random() * 46) + 45; // 45 - 90
       wonHints = Math.floor(Math.random() * 2) + 1; // 1 - 2
-      wonGems = Math.random() > 0.5 ? Math.floor(Math.random() * 3) + 1 : 0; // 0 or 1 - 3
+      wonGems = Math.random() > 0.90 ? 1 : 0; // 10% chance of 1 gem
     } else {
-      // Gold: Cost 25 Gems -> 120 - 220 Stars, 2 - 4 hints, 60% 2 - 5 gems rebate, 35% category unlock
-      wonStars = Math.floor(Math.random() * 101) + 120; // 120 - 220
-      wonHints = Math.floor(Math.random() * 3) + 2; // 2 - 4
-      wonGems = Math.random() > 0.4 ? Math.floor(Math.random() * 4) + 2 : 0; // 0 or 2 - 5
+      // Gold: Cost 25 Gems -> 120 - 200 Stars, 2 - 3 hints, 15% 1-2 gems rebate, 25% category unlock
+      wonStars = Math.floor(Math.random() * 81) + 120; // 120 - 200
+      wonHints = Math.floor(Math.random() * 2) + 2; // 2 - 3
+      wonGems = Math.random() > 0.85 ? Math.floor(Math.random() * 2) + 1 : 0; // 15% chance of 1-2 gems
 
-      // 35% Chance of random locked category unlock!
+      // 25% Chance of random locked category unlock!
       const lockedCategories = EXTRA_CATEGORIES.filter((c) => !isCategoryUnlocked(c.id));
-      if (lockedCategories.length > 0 && Math.random() > 0.65) {
+      if (lockedCategories.length > 0 && Math.random() > 0.75) {
         const randIdx = Math.floor(Math.random() * lockedCategories.length);
         wonCategory = lockedCategories[randIdx];
       }
@@ -484,7 +595,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
         )}
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-3 bg-slate-950/80 p-1 rounded-xl sm:rounded-2xl border border-slate-800 gap-1">
+        <div className="grid grid-cols-4 bg-slate-950/80 p-1 rounded-xl sm:rounded-2xl border border-slate-800 gap-1">
           <button
             id="tab-chests-btn"
             onClick={() => {
@@ -499,6 +610,22 @@ export const ShopModal: React.FC<ShopModalProps> = ({
           >
             <Gift className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">الصناديق 🎁</span>
+          </button>
+
+          <button
+            id="tab-avatars-btn"
+            onClick={() => {
+              soundManager.playClick();
+              setActiveTab('avatars');
+            }}
+            className={`py-2 px-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black font-['Cairo'] transition-all flex items-center justify-center gap-1 truncate ${
+              activeTab === 'avatars'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-pink-500/25'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">المظاهر 👑</span>
           </button>
 
           <button
@@ -530,7 +657,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
             }`}
           >
             <CreditCard className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">باقات الجواهر</span>
+            <span className="truncate">الجواهر 💎</span>
           </button>
         </div>
 
@@ -617,6 +744,126 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                               ? `فتح الصندوق (${chest.costAmount} 💎)`
                               : `تحتاج ${chest.costAmount} 💎`}
                         </span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* AVATARS TAB */}
+        {activeTab === 'avatars' && (
+          <div className="space-y-4 animate-in fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-right">
+              <div>
+                <h4 className="text-sm font-black text-white font-['Cairo'] flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-yellow-400" />
+                  <span>أيقونات ومظاهر البروفايل الحصرية (5 - 30 💎):</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  امتلك شارات ومظاهر أسطورية تظهر بجوار اسمك في قوائم المتصدرين والمباريات المباشرة!
+                </p>
+              </div>
+              <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1 text-[11px] text-slate-300 flex items-center gap-1.5 self-start sm:self-auto">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>مظهر دائم ومضمون بدون حظ</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {AVATAR_ITEMS.map((avatar) => {
+                const isUnlocked = userProfile?.unlockedAvatars?.includes(avatar.id);
+                const isSelected = userProfile?.selectedAvatar === avatar.id;
+                const canAfford = (userProfile?.gems || 0) >= avatar.priceGems;
+                const isProcessing = isProcessingAvatarId === avatar.id;
+
+                return (
+                  <div
+                    key={avatar.id}
+                    className={`p-4 rounded-3xl border-2 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 flex flex-col justify-between text-right space-y-3.5 transition-all relative overflow-hidden group shadow-lg ${avatar.borderClass}`}
+                  >
+                    {/* Top Row: Rarity Tag & Price/Status */}
+                    <div className="flex justify-between items-center">
+                      <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${avatar.badgeColor}`}>
+                        {avatar.tag}
+                      </span>
+                      {isSelected ? (
+                        <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          <span>مفعّل</span>
+                        </span>
+                      ) : isUnlocked ? (
+                        <span className="text-[11px] font-black text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                          مملوك 🔓
+                        </span>
+                      ) : (
+                        <span className="text-xs font-black text-amber-300 font-['Cairo'] flex items-center gap-1">
+                          {avatar.priceGems} 💎
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Visual Icon Avatar */}
+                    <div className="relative py-2 flex items-center justify-center">
+                      <div className={`w-20 h-20 rounded-2xl bg-gradient-to-tr ${avatar.iconBg} border border-white/20 flex items-center justify-center text-4xl shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
+                        {avatar.emoji}
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>نشط</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Description & Name */}
+                    <div className="space-y-1 text-center">
+                      <h4 className="font-black text-sm text-white font-['Cairo'] flex items-center justify-center gap-1.5">
+                        <span>{avatar.name}</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400 leading-relaxed text-right">
+                        {avatar.description}
+                      </p>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="pt-2 border-t border-slate-800/80">
+                      <button
+                        id={`avatar-action-btn-${avatar.id}`}
+                        disabled={isProcessing || (!isUnlocked && !canAfford)}
+                        onClick={() => handleBuyOrEquipAvatar(avatar)}
+                        className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs font-['Cairo'] flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
+                            : isUnlocked
+                              ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
+                              : !canAfford
+                                ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                                : avatar.rarity === 'legendary'
+                                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/25'
+                                  : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white shadow-pink-500/25'
+                        }`}
+                      >
+                        {isProcessing ? (
+                          <span>جارِ المعالجة...</span>
+                        ) : isSelected ? (
+                          <>
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>المظهر مفعّل حالياً</span>
+                          </>
+                        ) : isUnlocked ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>تفعيل المظهر الآن</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{canAfford ? `شراء المظهر (${avatar.priceGems} 💎)` : `تحتاج ${avatar.priceGems} 💎`}</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
