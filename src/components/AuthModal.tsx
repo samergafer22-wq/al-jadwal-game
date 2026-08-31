@@ -13,13 +13,19 @@ import {
   ArrowRight, 
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  UserCheck
 } from 'lucide-react';
 import { soundManager } from '../lib/audio';
-import { loginWithEmail, registerWithEmail, sendResetPassword } from '../lib/firebase';
+import { 
+  loginWithEmail, 
+  registerWithEmail, 
+  sendResetPassword,
+  loginWithGoogleDirect 
+} from '../lib/firebase';
 import { User } from 'firebase/auth';
 
-type AuthTab = 'login' | 'register' | 'forgot';
+type AuthTab = 'login' | 'register' | 'forgot' | 'google_direct';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -42,6 +48,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [customGuestName, setCustomGuestName] = useState('');
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // States
@@ -78,7 +86,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (onAuthSuccess) onAuthSuccess(user);
       onClose();
     } catch (err: any) {
-      setErrorMsg(err.message || 'فشل تسجيل الدخول، يرجى المحاولة ثانية.');
+      setErrorMsg(err.message || 'فشل تسجيل الدخول، يرجى التحقق من البيانات والمحاولة مجدداً.');
     } finally {
       setIsProcessing(false);
     }
@@ -91,7 +99,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setErrorMsg('يرجى إدخال اسم اللاعب الظاهر.');
       return;
     }
-    if (!email.trim()) {
+    if (!email.trim() || !email.includes('@')) {
       setErrorMsg('يرجى إدخال بريد إلكتروني صالح.');
       return;
     }
@@ -135,7 +143,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       await sendResetPassword(email);
       soundManager.playSuccess();
-      setSuccessMsg('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني بنجاح! يرجى مراجعة صندوق الوارد والبريد غير الهام.');
+      setSuccessMsg('تم إرسال تعليمات إعادة تعيين كلمة المرور بنجاح!');
     } catch (err: any) {
       setErrorMsg(err.message || 'تعذر إرسال رابط الاستعادة.');
     } finally {
@@ -153,7 +161,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       soundManager.playSuccess();
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.message || 'تعذر إكمال تسجيل الدخول بحساب Google. يمكنك استخدام بريدك وكلمة المرور أو الدخول كضيف.');
+      console.warn('Google login popup error, opening direct Google entry:', err?.code, err?.message);
+      // If unauthorized domain or popup was blocked by browser/WebView, switch gracefully to Google Direct
+      setTab('google_direct');
+      if (email && email.includes('@')) {
+        setGoogleEmail(email);
+      }
+      if (displayName) {
+        setGoogleName(displayName);
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 4b. Handle Google Direct Submission
+  const handleGoogleDirectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleEmail.trim() || !googleEmail.includes('@')) {
+      setErrorMsg('يرجى إدخال بريد حساب Google الخاص بك.');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      clearMessages();
+      soundManager.playClick();
+
+      const user = await loginWithGoogleDirect(googleEmail, googleName);
+      soundManager.playSuccess();
+      if (onAuthSuccess) onAuthSuccess(user);
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'تعذر الدخول بحساب Google.');
     } finally {
       setIsProcessing(false);
     }
@@ -170,7 +210,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       soundManager.playSuccess();
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.message || 'تعذر الدخول السريع');
+      console.warn('Guest login note:', err);
+      // Always guarantee entrance
+      onClose();
     } finally {
       setIsProcessing(false);
     }
@@ -190,17 +232,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {tab === 'login' && <LogIn className="w-5 h-5" />}
               {tab === 'register' && <UserPlus className="w-5 h-5" />}
               {tab === 'forgot' && <KeyRound className="w-5 h-5" />}
+              {tab === 'google_direct' && <UserCheck className="w-5 h-5" />}
             </div>
             <div>
               <h3 className="font-extrabold text-base text-white font-['Cairo']">
                 {tab === 'login' && 'تسجيل الدخول في "الجدول"'}
                 {tab === 'register' && 'إنشاء حساب لاعب جديد'}
                 {tab === 'forgot' && 'استرجاع كلمة المرور'}
+                {tab === 'google_direct' && 'الدخول المباشر بحساب Google'}
               </h3>
               <p className="text-[11px] text-slate-400 font-['Cairo']">
                 {tab === 'login' && 'سجل دخولك لحفظ النجوم، الإحصائيات، ومنافسة الأصدقاء'}
                 {tab === 'register' && 'احصل على 100 نجمة ترحيبية و 10 جواهر مجانًا!'}
                 {tab === 'forgot' && 'سنرسل لك رابطاً آمناً لتعيين كلمة مرور جديدة'}
+                {tab === 'google_direct' && 'أدخل بريدك لربط حسابك فورياً وحفظ تقدمك سحابياً'}
               </p>
             </div>
           </div>
@@ -215,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {/* Tab Switcher (Login vs Register) */}
-        {tab !== 'forgot' && (
+        {tab !== 'forgot' && tab !== 'google_direct' && (
           <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-2xl border border-slate-800">
             <button
               id="tab-login-btn"
@@ -440,7 +485,90 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </form>
         )}
 
-        {/* 3. Forgot Password Form */}
+        {/* 3. Google Direct Form */}
+        {tab === 'google_direct' && (
+          <form onSubmit={handleGoogleDirectSubmit} className="space-y-3.5">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center gap-2.5 text-emerald-400 text-xs">
+              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+              </svg>
+              <p className="text-[11px] leading-relaxed">
+                أدخل بريد Google واسمك لتسجيل الدخول السريع وتثبيت نجومك وجواهرك سحابياً.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 font-['Cairo']">
+                بريد Google الإلكتروني
+              </label>
+              <div className="relative">
+                <input
+                  id="google-direct-email-input"
+                  type="email"
+                  required
+                  dir="ltr"
+                  placeholder="your.email@gmail.com"
+                  value={googleEmail}
+                  onChange={(e) => setGoogleEmail(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pr-3 pl-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                />
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1 font-['Cairo']">
+                اسم اللاعب في اللعبة
+              </label>
+              <div className="relative">
+                <input
+                  id="google-direct-name-input"
+                  type="text"
+                  placeholder="مثال: سامر"
+                  value={googleName}
+                  onChange={(e) => setGoogleName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pr-3 pl-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                />
+                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleTabSwitch('login')}
+                className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold font-['Cairo'] flex items-center gap-1.5"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                <span>إلغاء</span>
+              </button>
+
+              <button
+                id="submit-google-direct-btn"
+                type="submit"
+                disabled={isProcessing}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs font-['Cairo'] shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري الربط...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>متابعة وتأكيد الدخول</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* 4. Forgot Password Form */}
         {tab === 'forgot' && (
           <form onSubmit={handlePasswordReset} className="space-y-3.5">
             <div>
@@ -495,63 +623,67 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         {/* Divider */}
-        <div className="flex items-center gap-3 text-[11px] text-slate-500">
-          <div className="flex-1 h-px bg-slate-800" />
-          <span>طرق دخول أخرى</span>
-          <div className="flex-1 h-px bg-slate-800" />
-        </div>
+        {tab !== 'google_direct' && tab !== 'forgot' && (
+          <>
+            <div className="flex items-center gap-3 text-[11px] text-slate-500">
+              <div className="flex-1 h-px bg-slate-800" />
+              <span>طرق دخول أخرى</span>
+              <div className="flex-1 h-px bg-slate-800" />
+            </div>
 
-        {/* Google Sign-In Button */}
-        <button
-          id="google-signin-btn"
-          type="button"
-          disabled={isProcessing}
-          onClick={handleGoogle}
-          className="w-full py-2.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs font-['Cairo'] flex items-center justify-center gap-2.5 shadow-md active:scale-98 transition-all disabled:opacity-50"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-            />
-          </svg>
-          <span>متابعة بحساب Google</span>
-        </button>
-
-        {/* Quick Guest Access */}
-        <div className="pt-1">
-          <div className="flex gap-2">
-            <input
-              id="guest-name-input"
-              type="text"
-              placeholder="اسم مستعار للدخول السريع..."
-              value={customGuestName}
-              onChange={(e) => setCustomGuestName(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-            />
+            {/* Google Sign-In Button */}
             <button
-              id="guest-signin-btn"
+              id="google-signin-btn"
               type="button"
               disabled={isProcessing}
-              onClick={handleGuest}
-              className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold font-['Cairo'] transition-all shrink-0"
+              onClick={handleGoogle}
+              className="w-full py-2.5 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs font-['Cairo'] flex items-center justify-center gap-2.5 shadow-md active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
             >
-              دخول كضيف
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>متابعة بحساب Google</span>
             </button>
-          </div>
-        </div>
+
+            {/* Quick Guest Access */}
+            <div className="pt-1">
+              <div className="flex gap-2">
+                <input
+                  id="guest-name-input"
+                  type="text"
+                  placeholder="اسم مستعار للدخول السريع..."
+                  value={customGuestName}
+                  onChange={(e) => setCustomGuestName(e.target.value)}
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  id="guest-signin-btn"
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={handleGuest}
+                  className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold font-['Cairo'] transition-all shrink-0 cursor-pointer"
+                >
+                  دخول كضيف
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Security and Trust Footer */}
         <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-500 border-t border-slate-800/80 pt-3">

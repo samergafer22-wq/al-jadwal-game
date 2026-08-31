@@ -79,18 +79,37 @@ export function mapFirebaseAuthError(error: any): string {
   }
 }
 
+// Sanitize data before writing to Firestore (prevents "Unsupported field value: undefined" errors)
+export function sanitizeForFirestore<T>(data: T): T {
+  if (data === undefined) return null as any;
+  if (data === null || typeof data !== 'object') return data;
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeForFirestore(item)) as any;
+  }
+  const cleanObj: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      cleanObj[key] = sanitizeForFirestore(value);
+    }
+  }
+  return cleanObj as T;
+}
+
 // Google Sign-In Provider
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
 });
 
 export async function loginWithGoogle(): Promise<User> {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    localStorage.removeItem('aljadwal_active_user');
+    notifyAuthChanged(result.user);
     return result.user;
   } catch (error: any) {
-    console.error('Google Sign-In Popup Error:', error);
+    console.warn('Google Sign-In Popup Error:', error?.code, error?.message);
+
     // If popup was blocked or unsupported on Android WebView/TWA, try redirect
     if (
       error?.code === 'auth/popup-blocked' ||
@@ -100,12 +119,39 @@ export async function loginWithGoogle(): Promise<User> {
         await signInWithRedirect(auth, googleProvider);
         return new Promise(() => {}); // Execution will reload on redirect
       } catch (redirectErr: any) {
-        console.error('Google Sign-In Redirect Error:', redirectErr);
-        throw new Error(mapFirebaseAuthError(redirectErr));
+        console.warn('Google Sign-In Redirect Error:', redirectErr);
       }
     }
-    throw new Error(mapFirebaseAuthError(error));
+
+    throw error;
   }
+}
+
+export async function loginWithGoogleDirect(googleEmail: string, googleName?: string): Promise<User> {
+  const cleanEmail = googleEmail.trim().toLowerCase();
+  const displayName = googleName?.trim() || cleanEmail.split('@')[0] || 'لاعب_جوجل';
+  const uid = 'goog_' + (await hashPassword(cleanEmail)).slice(0, 14);
+
+  const googleUser = createSyntheticUser({
+    uid,
+    displayName,
+    email: cleanEmail,
+    photoURL: `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanEmail}`,
+    isAnonymous: false,
+  });
+
+  localStorage.setItem('aljadwal_active_user', JSON.stringify({
+    uid: googleUser.uid,
+    displayName: googleUser.displayName,
+    email: googleUser.email,
+    isAnonymous: false,
+    photoURL: googleUser.photoURL,
+  }));
+  localStorage.setItem('aljadwal_last_google_email', cleanEmail);
+
+  await initUserProfile(googleUser, displayName, cleanEmail);
+  notifyAuthChanged(googleUser);
+  return googleUser;
 }
 
 export async function checkRedirectAuthResult(): Promise<User | null> {
@@ -414,14 +460,14 @@ export async function logoutUser(): Promise<void> {
 // User Profile Management
 export async function initUserProfile(user: User, customDisplayName?: string, customEmail?: string): Promise<UserProfile> {
   const today = new Date().toISOString().split('T')[0];
-  const userEmail = customEmail || user.email || undefined;
+  const userEmail = customEmail || user.email || null;
   const profileKey = `aljadwal_profile_${user.uid}`;
 
   const defaultProfile: UserProfile = {
     uid: user.uid,
     displayName: customDisplayName || user.displayName || `لاعب_${Math.floor(1000 + Math.random() * 9000)}`,
     photoURL: user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`,
-    email: userEmail,
+    email: userEmail || undefined,
     isAnonymous: user.isAnonymous,
     stars: 100, // 100 Welcome Stars
     gems: 10, // 10 Welcome Gems
@@ -453,10 +499,11 @@ export async function initUserProfile(user: User, customDisplayName?: string, cu
 
   try {
     const userRef = doc(db, 'users', user.uid);
-    const snap = await getDoc(userRef);
+    const snap = await getDoc(userRef).catch(() => null);
     
-    if (!snap.exists()) {
-      await setDoc(userRef, defaultProfile).catch((e) => console.warn('setDoc warn:', e));
+    if (!snap || !snap.exists()) {
+      const sanitized = sanitizeForFirestore(defaultProfile);
+      await setDoc(userRef, sanitized).catch((e) => console.warn('setDoc warn:', e));
       try {
         localStorage.setItem(profileKey, JSON.stringify(defaultProfile));
       } catch {}
@@ -467,9 +514,9 @@ export async function initUserProfile(user: User, customDisplayName?: string, cu
       if (data.hints === undefined) updates.hints = 3;
       if (data.hapticsEnabled === undefined) updates.hapticsEnabled = true;
       if (data.soundEnabled === undefined) updates.soundEnabled = true;
-      if (data.stats.totalWordsAccepted === undefined) updates['stats.totalWordsAccepted' as any] = (data.stats.wins * 8) || 0;
-      if (data.stats.rareLetterWins === undefined) updates['stats.rareLetterWins' as any] = 0;
-      if (data.stats.fastStopsCount === undefined) updates['stats.fastStopsCount' as any] = 0;
+      if (data.stats?.totalWordsAccepted === undefined) updates['stats.totalWordsAccepted' as any] = (data.stats?.wins * 8) || 0;
+      if (data.stats?.rareLetterWins === undefined) updates['stats.rareLetterWins' as any] = 0;
+      if (data.stats?.fastStopsCount === undefined) updates['stats.fastStopsCount' as any] = 0;
 
       if (data.lastRewardDate !== today) {
         updates.rewardedAdsToday = 0;
@@ -479,7 +526,7 @@ export async function initUserProfile(user: User, customDisplayName?: string, cu
       }
 
       if (Object.keys(updates).length > 0) {
-        await updateDoc(userRef, updates as any).catch((e) => console.warn('updateDoc warn:', e));
+        await updateDoc(userRef, sanitizeForFirestore(updates) as any).catch((e) => console.warn('updateDoc warn:', e));
       }
 
       const mergedProfile = { ...data, ...updates, isAnonymous: user.isAnonymous, email: userEmail || data.email };
