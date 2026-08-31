@@ -8,6 +8,7 @@ import {
   initUserProfile, 
   subscribeToUserProfile,
   subscribeToMatch,
+  subscribeToAuth,
   deleteUserAccount
 } from './lib/firebase';
 import { 
@@ -22,7 +23,7 @@ import {
   query, 
   where 
 } from 'firebase/firestore';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { User } from 'firebase/auth';
 import { 
   UserProfile, 
   MatchData, 
@@ -150,7 +151,7 @@ export default function App() {
 
   // 1. Initialize Auth & Profile
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = subscribeToAuth(async (user) => {
       if (user) {
         setCurrentUser(user);
         try {
