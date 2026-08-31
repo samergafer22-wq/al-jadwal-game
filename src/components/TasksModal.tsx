@@ -74,28 +74,30 @@ export const TasksModal: React.FC<TasksModalProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const unclaimedCount = countUnclaimedTasks(tasksState);
+  const safeTasks = tasksState?.tasks || {};
+
+  const unclaimedCount = tasksState ? countUnclaimedTasks(tasksState) : 0;
 
   // Daily Tasks stats
   const completedDailyCount = DAILY_TASKS.filter(
-    (t) => tasksState.tasks[t.id]?.completed
+    (t) => safeTasks[t.id]?.completed
   ).length;
 
   const unclaimedDailyCount = DAILY_TASKS.filter(
-    (t) => tasksState.tasks[t.id]?.completed && !tasksState.tasks[t.id]?.claimed
+    (t) => safeTasks[t.id]?.completed && !safeTasks[t.id]?.claimed
   ).length;
 
   // Weekly Tasks stats
   const completedWeeklyCount = WEEKLY_TASKS.filter(
-    (t) => tasksState.tasks[t.id]?.completed
+    (t) => safeTasks[t.id]?.completed
   ).length;
 
   const unclaimedWeeklyCount = WEEKLY_TASKS.filter(
-    (t) => tasksState.tasks[t.id]?.completed && !tasksState.tasks[t.id]?.claimed
+    (t) => safeTasks[t.id]?.completed && !safeTasks[t.id]?.claimed
   ).length;
 
   const weeklyMilestoneReady = 
-    completedWeeklyCount >= WEEKLY_MILESTONE_TARGET && !tasksState.weeklyBonusClaimed;
+    completedWeeklyCount >= WEEKLY_MILESTONE_TARGET && !tasksState?.weeklyBonusClaimed;
 
   // Handle single task claim
   const handleClaimTask = async (task: TaskDefinition) => {
@@ -337,7 +339,7 @@ export const TasksModal: React.FC<TasksModalProps> = ({
               {/* Task Items List */}
               <div className="space-y-3">
                 {DAILY_TASKS.map((task) => {
-                  const progress = tasksState.tasks[task.id] || {
+                  const progress = safeTasks[task.id] || {
                     taskId: task.id,
                     currentCount: 0,
                     completed: false,
@@ -490,7 +492,7 @@ export const TasksModal: React.FC<TasksModalProps> = ({
                     />
                   </div>
 
-                  {tasksState.weeklyBonusClaimed ? (
+                  {tasksState?.weeklyBonusClaimed ? (
                     <div className="flex items-center gap-1 text-xs text-emerald-400 font-black bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-500/30">
                       <CheckCircle2 className="w-4 h-4" />
                       <span>تم فتح الصندوق</span>
@@ -516,7 +518,7 @@ export const TasksModal: React.FC<TasksModalProps> = ({
               {/* Weekly Task Items List */}
               <div className="space-y-3">
                 {WEEKLY_TASKS.map((task) => {
-                  const progress = tasksState.tasks[task.id] || {
+                  const progress = safeTasks[task.id] || {
                     taskId: task.id,
                     currentCount: 0,
                     completed: false,

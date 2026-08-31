@@ -299,8 +299,40 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
       )}
 
-      {/* Quick Power & Rewards Shortcuts: Lucky Spin & Badges */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Quick Power & Rewards Shortcuts: Chests, Lucky Spin & Badges */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Mystery Reward Chests */}
+        <div 
+          id="lobby-chests-card"
+          onClick={() => {
+            soundManager.playClick();
+            onOpenShop('chests');
+          }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/50 via-slate-900 to-yellow-950/40 border border-amber-500/50 hover:border-amber-400 transition-all cursor-pointer flex items-center justify-between group shadow-md"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black group-hover:scale-110 transition-transform shadow-md">
+              <Gift className="w-5 h-5 text-slate-950" />
+            </div>
+            <div className="text-right">
+              <div className="flex items-center gap-1.5">
+                <h4 className="text-sm font-black text-white font-['Cairo'] group-hover:text-amber-300 transition-colors">
+                  صناديق الجوائز 🎁
+                </h4>
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded-full">
+                  3 صناديق
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                برونزي • فضي • ذهبي
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-black text-amber-400 group-hover:translate-x-[-2px] transition-transform">
+            فتح ←
+          </span>
+        </div>
+
         {/* Daily Lucky Spin */}
         {onOpenLuckySpin && (
           <div 
@@ -321,11 +353,11 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                   <div className="text-right">
                     <div className="flex items-center gap-2">
                       <h4 className="text-sm font-black text-white font-['Cairo'] group-hover:text-amber-300 transition-colors">
-                        عجلة الحظ اليومية 🎡
+                        عجلة الحظ 🎡
                       </h4>
                       {spinElig.canSpin ? (
-                        <span className="text-[10px] bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded-full animate-pulse">
-                          جاهزة الآن!
+                        <span className="text-[10px] bg-emerald-500 text-slate-950 font-black px-1.5 py-0.5 rounded-full animate-pulse">
+                          جاهزة!
                         </span>
                       ) : (
                         <span className="text-[10px] bg-slate-800 text-amber-300 font-mono font-bold px-1.5 py-0.5 rounded-lg border border-amber-500/30">
@@ -334,9 +366,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                       )}
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      {spinElig.canSpin 
-                        ? 'دوّر العجلة واربح نجوم وجواهر وتلميحات' 
-                        : `لفة واحدة كل 24 ساعة (متبقي ${spinElig.formattedCountdown})`}
+                      {spinElig.canSpin ? 'دوّر العجلة واربح' : `متبقي ${spinElig.formattedCountdown}`}
                     </p>
                   </div>
                 </div>
@@ -367,7 +397,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                   أوسمة الإنجازات 🏆
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  تحديات تراكمية ومكافآت نجوم وجواهر
+                  تحديات ومكافآت نجوم
                 </p>
               </div>
             </div>

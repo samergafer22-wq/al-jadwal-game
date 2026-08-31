@@ -1639,11 +1639,42 @@ export default function App() {
         />
       )}
 
-      {showTasksModal && tasksState && (
+      {showTasksModal && userProfile && (
         <TasksModal
-          userTasks={tasksState}
+          currentUser={userProfile}
+          tasksState={tasksState || {
+            userId: userProfile.uid,
+            dailyDate: new Date().toISOString().split('T')[0],
+            weeklyYearWeek: '2026-W36',
+            tasks: {},
+            weeklyBonusClaimed: false,
+            lastUpdated: Date.now(),
+          }}
+          onUpdateTasksState={(newState) => {
+            setTasksState(newState);
+            if (newState.tasks) {
+              // Also sync user profile stars if any reward was collected
+              const totalUnclaimed = countUnclaimedTasks(newState);
+              // user profile will update via auth/profile subscription
+            }
+          }}
           onClose={() => setShowTasksModal(false)}
-          onClaimReward={handleClaimTask}
+          onOpenDailyChallenge={() => {
+            setShowTasksModal(false);
+            setShowDailyChallenge(true);
+          }}
+          onOpenFriendChallenge={() => {
+            setShowTasksModal(false);
+            setShowFriendModal(true);
+          }}
+          onOpenQuickMatch={() => {
+            setShowTasksModal(false);
+            handleStartQuickMatch();
+          }}
+          onOpenRewardedAd={() => {
+            setShowTasksModal(false);
+            setShowRewardedAd(true);
+          }}
         />
       )}
 
