@@ -43,6 +43,7 @@ interface LobbyViewProps {
   onOpenLuckySpin?: () => void;
   onOpenAchievements?: () => void;
   onOpenAdmin?: () => void;
+  onOpenAuth?: () => void;
   tasksState?: UserTasksState;
   recentMatches: MatchHistoryItem[];
   isSearchingMatch: boolean;
@@ -64,6 +65,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onOpenLuckySpin,
   onOpenAchievements,
   onOpenAdmin,
+  onOpenAuth,
   tasksState,
   recentMatches,
   isSearchingMatch,
@@ -83,9 +85,51 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     : 0;
 
   const hasEnoughStars = userProfile.stars >= 20;
+  const isGuest = userProfile.isAnonymous || !userProfile.email;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-x-hidden">
+      
+      {/* Guest Notice & Sign Up Banner */}
+      {isGuest && onOpenAuth && (
+        <div
+          id="lobby-guest-auth-banner"
+          className="bg-gradient-to-r from-emerald-950/70 via-slate-900 to-teal-950/70 border border-emerald-500/40 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in"
+        >
+          <div className="flex items-center gap-3 text-center sm:text-right flex-col sm:flex-row">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/30 shrink-0">
+              <span className="text-2xl">👤</span>
+            </div>
+            <div>
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <span className="text-[11px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                  وضع الضيف مؤقت ⚠️
+                </span>
+                <span className="text-xs text-slate-300 font-medium">
+                  {userProfile.displayName}
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
+                سجّل حسابك بالبريد الإلكتروني واسم المستخدم وكلمة المرور 🚀
+              </h3>
+              <p className="text-xs text-slate-300">
+                احفظ نجومك وجواهرك وأوسمتك وترتيبك بين المتصدرين ولا تفقد تقدمك عند تبديل المتصفح
+              </p>
+            </div>
+          </div>
+
+          <button
+            id="lobby-guest-signup-btn"
+            onClick={() => {
+              soundManager.playClick();
+              onOpenAuth();
+            }}
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 shrink-0 hover:scale-105 active:scale-95"
+          >
+            <span>تسجيل الدخول / إنشاء حساب ⚡</span>
+          </button>
+        </div>
+      )}
       
       {/* Search Matchmaking Overlay Bar if Active */}
       {isSearchingMatch && (

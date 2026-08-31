@@ -68,23 +68,25 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  const isGuest = !userProfile || userProfile.isAnonymous || !userProfile.email;
+
   return (
-    <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 w-full max-w-full overflow-x-hidden">
+      <div className="max-w-5xl mx-auto px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1 sm:gap-2">
         
         {/* Brand / Logo & Sidebar Toggle & Home Button */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <button
             id="open-sidebar-menu-btn"
             onClick={() => {
               soundManager.playClick();
               onOpenSidebar();
             }}
-            className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700 flex items-center justify-center"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700 flex items-center justify-center"
             title="فتح القائمة الجانبية"
             aria-label="Toggle Sidebar Menu"
           >
-            <Menu className="w-5 h-5 text-emerald-400" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
           </button>
 
           {/* Home / Lobby Quick Button */}
@@ -92,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="navbar-go-home-btn"
               onClick={handleHomeClick}
-              className={`p-2 rounded-xl border flex items-center gap-1.5 transition-all ${
+              className={`p-1.5 sm:p-2 rounded-xl border flex items-center gap-1.5 transition-all ${
                 !isInGame
                   ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-emerald-500/40'
@@ -100,40 +102,37 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="العودة للقائمة الرئيسية"
             >
               <Home className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-black font-['Cairo'] hidden md:inline">
+              <span className="text-xs font-black font-['Cairo'] hidden lg:inline">
                 الرئيسية
               </span>
             </button>
           )}
 
           <div 
-            className="flex items-center gap-2.5 cursor-pointer group" 
+            className="flex items-center gap-2 cursor-pointer group" 
             onClick={handleHomeClick}
             title="العودة للقائمة الرئيسية"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white font-extrabold text-2xl font-['Cairo'] group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-md shadow-emerald-500/20 text-white font-black text-lg sm:text-xl font-['Cairo'] group-hover:scale-105 transition-transform">
               جـ
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-extrabold text-xl font-['Cairo'] text-white tracking-wide group-hover:text-emerald-300 transition-colors">
+              <div className="flex items-center gap-1">
+                <h1 className="font-extrabold text-base sm:text-lg font-['Cairo'] text-white tracking-wide group-hover:text-emerald-300 transition-colors leading-tight">
                   الجدول
                 </h1>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/30">
-                  تحدي مباشر
+                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1 py-0.2 rounded-full border border-emerald-500/30 hidden xs:inline">
+                  مباشر
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                تحدي الكلمات العربية اللحظي
-              </p>
             </div>
           </div>
         </div>
 
         {/* Wallets & Quick Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2">
           
-          {/* Quick Tasks Button */}
+          {/* Quick Tasks Button (Desktop / Tablet) */}
           {onOpenTasks && (
             <button
               id="navbar-tasks-btn"
@@ -141,22 +140,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 soundManager.playClick();
                 onOpenTasks();
               }}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-950/40 via-slate-800 to-indigo-950/40 hover:from-amber-900/60 hover:to-indigo-900/50 px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-500/40 text-amber-300 transition-all shadow-sm group relative"
+              className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-amber-950/40 via-slate-800 to-indigo-950/40 hover:from-amber-900/60 hover:to-indigo-900/50 px-2.5 py-1.5 rounded-xl border border-amber-500/40 text-amber-300 transition-all shadow-sm group relative"
               title="مهام الجدول اليومية والأسبوعية"
             >
-              <Gift className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-black font-['Cairo'] hidden sm:inline text-white group-hover:text-amber-200">
+              <Gift className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-black font-['Cairo'] text-white group-hover:text-amber-200">
                 المهام
               </span>
               {unclaimedTasksCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center animate-bounce shadow-md">
+                <span className="w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center animate-bounce shadow-md">
                   {unclaimedTasksCount}
                 </span>
               )}
             </button>
           )}
 
-          {/* Quick Daily Challenge Button */}
+          {/* Quick Daily Challenge Button (Desktop) */}
           {onOpenDailyChallenge && (
             <button
               id="navbar-daily-challenge-btn"
@@ -164,99 +163,44 @@ export const Navbar: React.FC<NavbarProps> = ({
                 soundManager.playClick();
                 onOpenDailyChallenge();
               }}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 hover:from-amber-500/30 hover:to-yellow-500/20 px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-500/40 text-amber-300 transition-all shadow-sm group"
-              title="تحدي اليوم الموحّد لجميع اللاعبين"
+              className="hidden lg:flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 hover:from-amber-500/30 hover:to-yellow-500/20 px-2.5 py-1.5 rounded-xl border border-amber-500/40 text-amber-300 transition-all shadow-sm group"
+              title="بطولة الـ 12 حرفاً الأسبوعية"
             >
-              <Calendar className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+              <Calendar className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
               <span className="text-xs font-black font-['Cairo'] text-white group-hover:text-amber-200">
-                تحدي اليوم
-              </span>
-              <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1 py-0.2 rounded-full hidden sm:inline">
-                +30 ⭐
+                12 حرفاً
               </span>
             </button>
           )}
 
-          {/* Quick Leaderboard Button in Navbar */}
-          <button
-            id="navbar-leaderboard-btn"
-            onClick={() => {
-              soundManager.playClick();
-              onOpenLeaderboard();
-            }}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-950/40 to-slate-800 hover:from-amber-900/60 hover:to-slate-700 px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-500/40 text-amber-300 transition-all shadow-sm group"
-            title="لوحة المتصدرين"
-          >
-            <Trophy className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-black font-['Cairo'] hidden sm:inline text-white group-hover:text-amber-200">
-              المتصدرون
-            </span>
-          </button>
-
           {/* Challenge Stars (Free Currency) */}
           <div 
             id="stars-wallet-badge"
-            className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-amber-500/30 transition-all cursor-pointer group"
+            className="flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border border-amber-500/30 transition-all cursor-pointer group"
             onClick={onOpenRewardedAd}
             title="نجوم التحدي: عملة مجانية للمراهنة في المباريات. اضغط للحصول على المزيد!"
           >
-            <span className="text-lg animate-bounce">⭐</span>
-            <div className="text-right">
-              <span className="text-xs text-amber-300/80 block leading-tight font-medium">النجوم</span>
-              <span className="text-sm font-black text-amber-400 font-['Cairo']">
-                {userProfile?.stars ?? 100}
-              </span>
-            </div>
-            <button
-              id="claim-ad-quick-btn"
-              className="mr-1 bg-amber-500/20 group-hover:bg-amber-500 text-amber-300 group-hover:text-slate-950 text-[11px] font-bold px-1.5 py-0.5 rounded-lg transition-colors flex items-center gap-1"
-            >
-              <Tv className="w-3 h-3" />
-              <span className="hidden md:inline">+20</span>
-            </button>
+            <span className="text-sm sm:text-base animate-bounce">⭐</span>
+            <span className="text-xs sm:text-sm font-black text-amber-400 font-['Cairo']">
+              {userProfile?.stars ?? 100}
+            </span>
           </div>
 
           {/* Gems (Purchased Currency) */}
           <div 
             id="gems-wallet-badge"
-            className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-cyan-500/30 transition-all cursor-pointer group"
+            className="flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border border-cyan-500/30 transition-all cursor-pointer group"
             onClick={() => {
               soundManager.playClick();
               onOpenShop('gems');
             }}
-            title="الجواهر: عملة مدفوعة لفتح فئات إضافية ومظاهر، غير قابلة للمراهنة"
+            title="الجواهر: عملة مدفوعة لفتح فئات إضافية ومظاهر"
           >
-            <span className="text-lg">💎</span>
-            <div className="text-right">
-              <span className="text-xs text-cyan-300/80 block leading-tight font-medium">الجواهر</span>
-              <span className="text-sm font-black text-cyan-400 font-['Cairo']">
-                {userProfile?.gems ?? 0}
-              </span>
-            </div>
-            <button
-              id="open-shop-quick-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                soundManager.playClick();
-                onOpenShop('categories');
-              }}
-              className="mr-1 bg-cyan-500/20 group-hover:bg-cyan-500 text-cyan-300 group-hover:text-slate-950 text-[11px] font-bold px-1.5 py-0.5 rounded-lg transition-colors flex items-center gap-1"
-            >
-              <ShoppingBag className="w-3 h-3" />
-              <span className="hidden md:inline">متجر</span>
-            </button>
+            <span className="text-sm sm:text-base">💎</span>
+            <span className="text-xs sm:text-sm font-black text-cyan-400 font-['Cairo']">
+              {userProfile?.gems ?? 0}
+            </span>
           </div>
-
-          {/* Sound Toggle */}
-          <button
-            id="sound-toggle-btn"
-            onClick={handleToggleMute}
-            className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700"
-            title={isMuted ? 'تشغيل الصوت' : 'كتم الصوت'}
-            aria-label="Toggle Sound"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
 
           {/* Admin Dashboard Button (Only for Admins) */}
           {userProfile && checkIsAdmin(userProfile) && onOpenAdmin && (
@@ -266,33 +210,46 @@ export const Navbar: React.FC<NavbarProps> = ({
                 soundManager.playClick();
                 onOpenAdmin();
               }}
-              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/30 via-slate-800 to-amber-500/20 hover:from-amber-500/50 hover:to-amber-500/30 px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-500/60 text-amber-300 transition-all shadow-md group animate-pulse"
+              className="hidden sm:flex items-center gap-1 bg-amber-500/20 hover:bg-amber-500/30 px-2 py-1.5 rounded-xl border border-amber-500/60 text-amber-300 transition-all shadow-md group animate-pulse"
               title="لوحة تحكم الآدمن"
             >
-              <ShieldCheck className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-black font-['Cairo'] text-amber-300">
-                لوحة الآدمن
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[11px] font-black font-['Cairo'] text-amber-300">
+                آدمن
               </span>
             </button>
           )}
 
           {/* User Profile / Auth */}
-          {userProfile ? (
+          {isGuest ? (
+            <button
+              id="navbar-login-btn"
+              onClick={() => {
+                soundManager.playClick();
+                onOpenAuth();
+              }}
+              className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-black font-['Cairo'] px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl shadow-md shadow-emerald-600/20 active:scale-95 transition-all shrink-0"
+              title="تسجيل الدخول أو إنشاء حساب بالبريد الإلكتروني"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>دخول / حساب</span>
+            </button>
+          ) : (
             <div className="relative">
               <button
                 id="user-menu-btn"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 p-1 pl-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all"
+                className="flex items-center gap-1.5 p-1 pl-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all"
               >
                 <img
-                  src={userProfile.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${userProfile.uid}`}
-                  alt={userProfile.displayName}
-                  className="w-7 h-7 rounded-lg bg-slate-700 border border-slate-600 object-cover"
+                  src={userProfile?.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${userProfile?.uid}`}
+                  alt={userProfile?.displayName || 'User'}
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-700 border border-slate-600 object-cover"
                 />
-                <span className="text-xs font-bold text-slate-200 hidden sm:inline max-w-[90px] truncate">
-                  {userProfile.displayName}
+                <span className="text-[11px] sm:text-xs font-bold text-slate-200 hidden sm:inline max-w-[80px] truncate">
+                  {userProfile?.displayName}
                 </span>
-                {checkIsAdmin(userProfile) && (
+                {userProfile && checkIsAdmin(userProfile) && (
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
                 )}
               </button>
@@ -306,19 +263,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <div className="px-3 py-2 border-b border-slate-700/60 mb-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-white truncate">{userProfile.displayName}</p>
-                      {checkIsAdmin(userProfile) && (
+                      <p className="text-xs font-bold text-white truncate">{userProfile?.displayName}</p>
+                      {userProfile && checkIsAdmin(userProfile) && (
                         <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full">
                           آدمن
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400">
-                      أعلى نتيجة: <span className="text-amber-300 font-bold">{userProfile.stats.highestScore || 0}</span> نقطة
+                    <p className="text-[10px] text-slate-400 truncate">
+                      {userProfile?.email || 'حساب مسجل'}
+                    </p>
+                    <p className="text-[11px] text-slate-300 mt-1">
+                      أعلى نتيجة: <span className="text-amber-300 font-bold">{userProfile?.stats.highestScore || 0}</span> نقطة
                     </p>
                   </div>
 
-                  {checkIsAdmin(userProfile) && onOpenAdmin && (
+                  {userProfile && checkIsAdmin(userProfile) && onOpenAdmin && (
                     <button
                       id="menu-admin-panel-btn"
                       onClick={onOpenAdmin}
@@ -340,20 +300,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   
                   <button
                     id="menu-shop-btn"
-                    onClick={onOpenShop}
+                    onClick={() => onOpenShop('categories')}
                     className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700/60 rounded-xl transition-colors"
                   >
                     <span>متجر الفئات والجواهر</span>
                     <ShoppingBag className="w-4 h-4 text-cyan-400" />
-                  </button>
-
-                  <button
-                    id="menu-reward-btn"
-                    onClick={onOpenRewardedAd}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700/60 rounded-xl transition-colors"
-                  >
-                    <span>نجوم مجانية (إعلان مكافأة)</span>
-                    <Tv className="w-4 h-4 text-amber-400" />
                   </button>
 
                   <button
@@ -367,15 +318,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               )}
             </div>
-          ) : (
-            <button
-              id="navbar-login-btn"
-              onClick={onOpenAuth}
-              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-md shadow-emerald-600/20 transition-colors"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>تسجيل الدخول</span>
-            </button>
           )}
 
         </div>

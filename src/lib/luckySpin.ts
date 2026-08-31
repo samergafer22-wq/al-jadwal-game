@@ -26,7 +26,8 @@ export const OFFICIAL_WHEEL_SEGMENTS: WheelSegmentDef[] = [
 ];
 
 /**
- * Checks if the user is eligible for a lucky spin (strictly once per 24 hours)
+ * Checks if the user is eligible for a lucky spin (strictly once per 24 hours).
+ * Checks userProfile, user-specific localStorage, and device-level localStorage for bulletproof 24h cooldown.
  */
 export function checkSpinEligibility(userProfile: UserProfile | null): {
   canSpin: boolean;
@@ -34,23 +35,46 @@ export function checkSpinEligibility(userProfile: UserProfile | null): {
   formattedCountdown: string;
   progressPercentage: number;
 } {
-  if (!userProfile) {
-    return { canSpin: false, remainingMs: SPIN_COOLDOWN_MS, formattedCountdown: '24:00:00', progressPercentage: 0 };
+  const now = Date.now();
+  let candidateTimes: number[] = [];
+
+  if (userProfile?.lastLuckySpinTime && typeof userProfile.lastLuckySpinTime === 'number') {
+    candidateTimes.push(userProfile.lastLuckySpinTime);
   }
 
-  const now = Date.now();
-  let lastSpinTime = userProfile.lastLuckySpinTime;
-
-  // Fallback for legacy records having only lastLuckySpinDate
-  if (!lastSpinTime && userProfile.lastLuckySpinDate) {
-    const parsedDate = new Date(userProfile.lastLuckySpinDate).getTime();
-    if (!isNaN(parsedDate)) {
-      lastSpinTime = parsedDate;
+  // Fallback for legacy records having only lastLuckySpinDate (YYYY-MM-DD)
+  if (userProfile?.lastLuckySpinDate) {
+    const today = new Date().toISOString().split('T')[0];
+    if (userProfile.lastLuckySpinDate === today && (!userProfile.lastLuckySpinTime || userProfile.lastLuckySpinTime === 0)) {
+      // Spun today without millisecond timestamp -> treat as spun earlier today
+      candidateTimes.push(now - 1000); // effectively locks it for 24h
     }
   }
 
-  // Never spun before
-  if (!lastSpinTime) {
+  // Check LocalStorage user & device timestamps
+  try {
+    const uid = userProfile?.uid || 'guest';
+    const localUserTs = localStorage.getItem(`aljadwal_lucky_spin_ts_${uid}`);
+    if (localUserTs) {
+      const parsed = parseInt(localUserTs, 10);
+      if (!isNaN(parsed) && parsed > 0 && parsed <= now + 60000) {
+        candidateTimes.push(parsed);
+      }
+    }
+
+    const deviceTs = localStorage.getItem('aljadwal_lucky_spin_ts_device');
+    if (deviceTs) {
+      const parsed = parseInt(deviceTs, 10);
+      if (!isNaN(parsed) && parsed > 0 && parsed <= now + 60000) {
+        candidateTimes.push(parsed);
+      }
+    }
+  } catch (e) {
+    // Ignore storage quota or access issues
+  }
+
+  // If no previous spin recorded anywhere
+  if (candidateTimes.length === 0) {
     return {
       canSpin: true,
       remainingMs: 0,
@@ -59,7 +83,8 @@ export function checkSpinEligibility(userProfile: UserProfile | null): {
     };
   }
 
-  const elapsed = now - lastSpinTime;
+  const latestSpinTime = Math.max(...candidateTimes);
+  const elapsed = now - latestSpinTime;
   const remaining = SPIN_COOLDOWN_MS - elapsed;
 
   if (remaining <= 0) {

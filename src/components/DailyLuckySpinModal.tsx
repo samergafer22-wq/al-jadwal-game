@@ -152,10 +152,30 @@ export const DailyLuckySpinModal: React.FC<DailyLuckySpinModalProps> = ({
       return;
     }
 
-    // Lock spin to prevent race conditions or double clicks
+    const spinTimestamp = Date.now();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Lock spin immediately to prevent race conditions, page refreshes, or double clicks
     isSpinningLockRef.current = true;
     setIsSpinning(true);
     setWonSegment(null);
+
+    // Save timestamp immediately at moment of spin to block any reload exploits
+    try {
+      const uid = userProfile?.uid || 'guest';
+      localStorage.setItem(`aljadwal_lucky_spin_ts_${uid}`, spinTimestamp.toString());
+      localStorage.setItem('aljadwal_lucky_spin_ts_device', spinTimestamp.toString());
+    } catch (e) {
+      // Ignore
+    }
+
+    // Immediately set eligibility to locked
+    setEligibility({
+      canSpin: false,
+      remainingMs: 24 * 60 * 60 * 1000,
+      formattedCountdown: '24:00:00',
+      progressPercentage: 0,
+    });
 
     soundManager.playClick();
     haptics.tap();
@@ -204,8 +224,8 @@ export const DailyLuckySpinModal: React.FC<DailyLuckySpinModalProps> = ({
         // Refresh local status
         setEligibility(checkSpinEligibility({
           ...userProfile!,
-          lastLuckySpinTime: Date.now(),
-          lastLuckySpinDate: new Date().toISOString().split('T')[0],
+          lastLuckySpinTime: spinTimestamp,
+          lastLuckySpinDate: todayStr,
         }));
       } catch (err) {
         console.error('Failed to grant spin reward:', err);

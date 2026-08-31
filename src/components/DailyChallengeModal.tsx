@@ -236,13 +236,15 @@ export const DailyChallengeModal: React.FC<DailyChallengeModalProps> = ({
     soundManager.playVictory();
     fireGrandMatchVictoryConfetti();
 
-    // Reward stars and trigger task progress
-    if (onRewardStars && !hasClaimedWeeklyBonus) {
-      await onRewardStars(50);
+    // Reward stars and gems and trigger task progress only once per week
+    if (!existingSubmission && !hasClaimedWeeklyBonus) {
       setHasClaimedWeeklyBonus(true);
-    }
-    if (onRewardGems) {
-      await onRewardGems(10);
+      if (onRewardStars) {
+        await onRewardStars(50);
+      }
+      if (onRewardGems) {
+        await onRewardGems(10);
+      }
     }
     if (onDailyChallengeCompleted) {
       onDailyChallengeCompleted();

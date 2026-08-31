@@ -1268,37 +1268,20 @@ export default function App() {
   const handleSpinWheelReward = async (reward: LuckySpinReward) => {
     if (!currentUser || !userProfile) return;
 
-    // 1. Security Check: Verify that 24 hours have strictly passed (with a tiny 5s tolerance for network lag)
     const now = Date.now();
-    const lastSpin = userProfile.lastLuckySpinTime;
-    if (lastSpin && (now - lastSpin < SPIN_COOLDOWN_MS - 5000)) {
-      console.warn('Blocked duplicate spin attempt within 24h cooldown.');
-      return;
-    }
+    const today = new Date().toISOString().split('T')[0];
 
-    // 2. Anti-Tamper Check: Sanitize reward values from segment index
+    // 1. Anti-Tamper Check: Sanitize reward values from segment index
     const segmentIdNumber = parseInt((reward.id || '').replace('spin_', ''), 10);
     const sanitized = sanitizeAndValidateSpinReward(isNaN(segmentIdNumber) ? 7 : segmentIdNumber);
 
-    const today = new Date().toISOString().split('T')[0];
     const nextStreak = calculateNextStreak(userProfile);
-
-    const updatedStars = userProfile.stars + (sanitized.stars || 0);
-    const updatedGems = userProfile.gems + (sanitized.gems || 0);
+    const updatedStars = (userProfile.stars || 0) + (sanitized.stars || 0);
+    const updatedGems = (userProfile.gems || 0) + (sanitized.gems || 0);
     const updatedHints = (userProfile.hints || 0) + (sanitized.hints || 0);
     const updatedSpinsCount = (userProfile.luckySpinsCount || 0) + 1;
 
-    await updateDoc(doc(db, 'users', currentUser.uid), {
-      stars: updatedStars,
-      gems: updatedGems,
-      hints: updatedHints,
-      lastLuckySpinDate: today,
-      lastLuckySpinTime: now,
-      luckySpinStreak: nextStreak,
-      luckySpinsCount: updatedSpinsCount,
-    });
-
-    setUserProfile({
+    const updatedProfileData: UserProfile = {
       ...userProfile,
       stars: updatedStars,
       gems: updatedGems,
@@ -1307,7 +1290,34 @@ export default function App() {
       lastLuckySpinTime: now,
       luckySpinStreak: nextStreak,
       luckySpinsCount: updatedSpinsCount,
-    });
+    };
+
+    // Update state immediately
+    setUserProfile(updatedProfileData);
+
+    // Save device & user locks in localStorage
+    try {
+      localStorage.setItem(`aljadwal_lucky_spin_ts_${currentUser.uid}`, now.toString());
+      localStorage.setItem('aljadwal_lucky_spin_ts_device', now.toString());
+      localStorage.setItem('aljadwal_guest_profile', JSON.stringify(updatedProfileData));
+    } catch (e) {}
+
+    // Persist to Firestore if registered user
+    if (currentUser.uid && !currentUser.uid.startsWith('guest_')) {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          stars: updatedStars,
+          gems: updatedGems,
+          hints: updatedHints,
+          lastLuckySpinDate: today,
+          lastLuckySpinTime: now,
+          luckySpinStreak: nextStreak,
+          luckySpinsCount: updatedSpinsCount,
+        });
+      } catch (err) {
+        console.warn('Firestore lucky spin sync note:', err);
+      }
+    }
 
     trackUserTaskAction('spin_lucky_wheel', 1);
   };
@@ -1525,6 +1535,7 @@ export default function App() {
             onOpenLuckySpin={() => setShowLuckySpin(true)}
             onOpenAchievements={() => setShowAchievements(true)}
             onOpenAdmin={() => setShowAdminPanel(true)}
+            onOpenAuth={() => setShowAuthModal(true)}
             tasksState={tasksState || undefined}
             recentMatches={recentMatches}
             isSearchingMatch={isSearchingMatch}
@@ -1696,6 +1707,19 @@ export default function App() {
           onClose={() => setShowAuthModal(false)}
           onLoginGoogle={handleLoginGoogle}
           onLoginGuest={handleLoginGuest}
+          onAuthSuccess={async (user) => {
+            setCurrentUser(user);
+            try {
+              const profile = await initUserProfile(user);
+              setUserProfile(profile);
+              await bootstrapAdminStatusIfNeeded(profile);
+              const userTasks = await fetchUserTasks(user.uid);
+              setTasksState(userTasks);
+            } catch (e) {
+              console.error('Error post-auth setup:', e);
+            }
+            setShowAuthModal(false);
+          }}
         />
       )}
 

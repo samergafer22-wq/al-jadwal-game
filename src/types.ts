@@ -10,6 +10,7 @@ export interface UserProfile {
   displayName: string;
   photoURL?: string;
   email?: string;
+  isAnonymous?: boolean;
   role?: 'admin' | 'player';
   isAdmin?: boolean;
   isBanned?: boolean;

@@ -99,6 +99,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ? Math.round((userProfile.stats.wins / userProfile.stats.totalMatches) * 100)
     : 0;
 
+  const isGuest = !userProfile || userProfile.isAnonymous || !userProfile.email;
+
   return (
     <div 
       id="sidebar-drawer-overlay"
@@ -149,14 +151,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="w-11 h-11 rounded-xl bg-slate-800 border border-emerald-500/30 object-cover"
                 />
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-white font-['Cairo'] truncate">
-                    {userProfile.displayName}
-                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="font-bold text-sm text-white font-['Cairo'] truncate">
+                      {userProfile.displayName}
+                    </h4>
+                    {isGuest ? (
+                      <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded">
+                        ضيف
+                      </span>
+                    ) : (
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded">
+                        مسجل
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-slate-400">
                     أعلى سكور: <span className="text-amber-300 font-bold">{userProfile.stats.highestScore || 0}</span> نقطة
                   </p>
                 </div>
               </div>
+
+              {/* If guest, show quick account creation prompt */}
+              {isGuest && (
+                <button
+                  id="sidebar-guest-register-prompt-btn"
+                  onClick={() => {
+                    soundManager.playClick();
+                    onClose();
+                    onOpenAuth();
+                  }}
+                  className="w-full mt-1 py-1.5 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-[11px] font-black font-['Cairo'] flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>تسجيل الدخول / إنشاء حساب</span>
+                </button>
+              )}
 
               {/* Currency & Stat Pills */}
               <div className="grid grid-cols-2 gap-2 pt-1">
@@ -555,7 +584,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer Section */}
         <div className="pt-4 border-t border-slate-800 space-y-2">
-          {userProfile ? (
+          {isGuest ? (
+            <div className="space-y-1.5">
+              <button
+                id="sidebar-login-btn"
+                onClick={() => {
+                  soundManager.playClick();
+                  onClose();
+                  onOpenAuth();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black font-['Cairo'] flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>تسجيل الدخول / إنشاء حساب</span>
+              </button>
+
+              <button
+                id="sidebar-logout-guest-btn"
+                onClick={() => {
+                  soundManager.playClick();
+                  onClose();
+                  onLogout();
+                }}
+                className="w-full py-1.5 px-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-[11px] font-bold font-['Cairo'] flex items-center justify-center gap-1.5 transition-all"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>تسجيل الخروج من حساب الضيف</span>
+              </button>
+            </div>
+          ) : (
             <div className="space-y-1.5">
               <button
                 id="sidebar-logout-btn"
@@ -585,19 +642,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               )}
             </div>
-          ) : (
-            <button
-              id="sidebar-login-btn"
-              onClick={() => {
-                soundManager.playClick();
-                onClose();
-                onOpenAuth();
-              }}
-              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black font-['Cairo'] flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>تسجيل الدخول</span>
-            </button>
           )}
 
           <p className="text-[10px] text-center text-slate-500 font-['Cairo'] pt-1">

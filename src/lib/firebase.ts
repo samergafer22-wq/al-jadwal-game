@@ -151,6 +151,7 @@ export async function initUserProfile(user: User, customDisplayName?: string): P
       displayName: customDisplayName || user.displayName || `لاعب_${Math.floor(1000 + Math.random() * 9000)}`,
       photoURL: user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`,
       email: user.email || undefined,
+      isAnonymous: user.isAnonymous,
       stars: 100, // 100 Welcome Stars
       gems: 10, // 10 Welcome Gems
       hints: 3, // 3 Welcome In-Game Hints
@@ -203,7 +204,7 @@ export async function initUserProfile(user: User, customDisplayName?: string): P
     if (Object.keys(updates).length > 0) {
       await updateDoc(userRef, updates as any);
     }
-    return { ...data, ...updates };
+    return { ...data, ...updates, isAnonymous: user.isAnonymous, email: user.email || data.email };
   }
 }
 

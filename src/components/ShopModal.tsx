@@ -556,25 +556,30 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                       </p>
                     </div>
 
-                    {/* Open Button */}
-                    <div className="pt-2 border-t border-slate-800/80">
-                      <button
-                        id={`open-chest-btn-${chest.id}`}
-                        onClick={() => handleOpenChest(chest)}
-                        className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs font-['Cairo'] flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
-                          canAfford
-                            ? chest.tier === 'gold'
-                              ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/25'
-                              : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
-                            : 'bg-slate-800 text-slate-400 border border-slate-700'
-                        }`}
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>
-                          {canAfford ? `فتح الصندوق (${chest.costAmount} ${chest.costType === 'stars' ? '⭐' : '💎'})` : 'الرصيد لا يكفي'}
-                        </span>
-                      </button>
-                    </div>
+                      {/* Open Button */}
+                      <div className="pt-2 border-t border-slate-800/80">
+                        <button
+                          id={`open-chest-btn-${chest.id}`}
+                          disabled={!canAfford || isChestOpeningAnim}
+                          onClick={() => handleOpenChest(chest)}
+                          className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs font-['Cairo'] flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
+                            !canAfford || isChestOpeningAnim
+                              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                              : chest.tier === 'gold'
+                                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/25'
+                                : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
+                          }`}
+                        >
+                          <Zap className="w-3.5 h-3.5" />
+                          <span>
+                            {isChestOpeningAnim && openingChest?.id === chest.id
+                              ? 'جارِ فتح الصندوق...'
+                              : canAfford
+                                ? `فتح الصندوق (${chest.costAmount} ${chest.costType === 'stars' ? '⭐' : '💎'})`
+                                : 'الرصيد لا يكفي'}
+                          </span>
+                        </button>
+                      </div>
                   </div>
                 );
               })}
