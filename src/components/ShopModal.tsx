@@ -51,8 +51,8 @@ export const REWARD_CHESTS: ChestDef[] = [
     name: 'صندوق البداية البرونزي',
     tier: 'bronze',
     costType: 'stars',
-    costAmount: 50,
-    description: 'يحتوي على نجوم، تلميحات سريعة، وفرصة الحصول على جواهر.',
+    costAmount: 60,
+    description: 'يحتوي على تلميحات سريعة، وفرصة الحصول على جواهر مع استرجاع جزء من النجوم.',
     badge: 'شائع 🥉',
     accentColor: 'border-amber-700/60',
     iconBg: 'from-amber-800 to-amber-950',
@@ -63,8 +63,8 @@ export const REWARD_CHESTS: ChestDef[] = [
     name: 'صندوق الأبطال الفضي',
     tier: 'silver',
     costType: 'stars',
-    costAmount: 150,
-    description: 'يحتوي على مكافآت مضاعفة من النجوم، 3 تلميحات، وجواهر إضافية.',
+    costAmount: 180,
+    description: 'يحتوي على 1-2 تلميح، وجواهر قيّمة، مع استرجاع جزء من النجوم.',
     badge: 'نادر 🥈',
     accentColor: 'border-cyan-400/60',
     iconBg: 'from-cyan-700 to-blue-950',
@@ -75,8 +75,8 @@ export const REWARD_CHESTS: ChestDef[] = [
     name: 'صندوق الأساطير الذهبي',
     tier: 'gold',
     costType: 'gems',
-    costAmount: 20,
-    description: 'صندوق خرافي يمنح رصيداً هائلاً من النجوم والجواهر وفرصة فتح فئة مجاناً!',
+    costAmount: 30,
+    description: 'صندوق فاخر يمنح رصيداً كبيراً من النجوم والتلميحات وفرصة فتح فئة جديدة!',
     badge: 'أسطوري 👑',
     accentColor: 'border-amber-400',
     iconBg: 'from-amber-500 to-yellow-600',
@@ -279,22 +279,24 @@ export const ShopModal: React.FC<ShopModalProps> = ({
     let wonCategory: CategoryDef | undefined = undefined;
 
     if (chest.tier === 'bronze') {
-      wonStars = Math.floor(Math.random() * 50) + 30; // 30 - 80
-      wonHints = Math.random() > 0.4 ? 1 : 0;
-      wonGems = Math.random() > 0.7 ? Math.floor(Math.random() * 3) + 1 : 0;
+      // Cost: 60 Stars -> Return: 15 - 30 Stars (always < cost), 50% 1 hint, 20% 1 gem
+      wonStars = Math.floor(Math.random() * 16) + 15; // 15 - 30
+      wonHints = Math.random() > 0.5 ? 1 : 0;
+      wonGems = Math.random() > 0.8 ? 1 : 0;
     } else if (chest.tier === 'silver') {
-      wonStars = Math.floor(Math.random() * 120) + 100; // 100 - 220
-      wonHints = Math.floor(Math.random() * 3) + 1; // 1 - 3
-      wonGems = Math.floor(Math.random() * 6) + 3; // 3 - 8
+      // Cost: 180 Stars -> Return: 40 - 75 Stars (always < cost), 1 - 2 hints, 1 - 3 gems
+      wonStars = Math.floor(Math.random() * 36) + 40; // 40 - 75
+      wonHints = Math.floor(Math.random() * 2) + 1; // 1 - 2
+      wonGems = Math.floor(Math.random() * 3) + 1; // 1 - 3
     } else {
-      // Gold
-      wonStars = Math.floor(Math.random() * 300) + 250; // 250 - 550
-      wonHints = Math.floor(Math.random() * 4) + 3; // 3 - 6
-      wonGems = Math.floor(Math.random() * 15) + 10; // 10 - 25
+      // Gold: Cost: 30 Gems -> Return: 150 - 250 Stars, 2 - 4 hints, 0 or 2 - 5 gems rebate
+      wonStars = Math.floor(Math.random() * 101) + 150; // 150 - 250
+      wonHints = Math.floor(Math.random() * 3) + 2; // 2 - 4
+      wonGems = Math.random() > 0.5 ? Math.floor(Math.random() * 4) + 2 : 0; // 0 or 2 - 5
 
-      // Chance of random locked category unlock!
+      // 25% Chance of random locked category unlock!
       const lockedCategories = EXTRA_CATEGORIES.filter((c) => !isCategoryUnlocked(c.id));
-      if (lockedCategories.length > 0 && Math.random() > 0.4) {
+      if (lockedCategories.length > 0 && Math.random() > 0.75) {
         const randIdx = Math.floor(Math.random() * lockedCategories.length);
         wonCategory = lockedCategories[randIdx];
       }
