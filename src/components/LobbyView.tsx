@@ -504,7 +504,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               <div className="flex items-center justify-between text-slate-400">
                 <span>تصريح إنشاء الغرفة:</span>
                 <span className="font-bold text-cyan-300 flex items-center gap-1 font-['Cairo']">
-                  5 💎
+                  15 💎
                 </span>
               </div>
               <div className="flex items-center justify-between text-slate-400">

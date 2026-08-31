@@ -241,11 +241,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-1.5 p-1 pl-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all"
               >
-                <img
-                  src={userProfile?.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${userProfile?.uid}`}
-                  alt={userProfile?.displayName || 'User'}
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-700 border border-slate-600 object-cover"
-                />
+                <div className="relative">
+                  <img
+                    src={userProfile?.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${userProfile?.uid}`}
+                    alt={userProfile?.displayName || 'User'}
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-700 border border-slate-600 object-cover"
+                  />
+                  {userProfile?.selectedAvatar && (
+                    <span 
+                      className="absolute -bottom-1.5 -right-1.5 text-[9px] sm:text-[10px] bg-slate-900 border border-amber-500/40 rounded-full px-0.5 shadow leading-none"
+                    >
+                      {userProfile.selectedAvatar === 'avatar_crown' ? '👑' :
+                       userProfile.selectedAvatar === 'avatar_falcon' ? '🦅' :
+                       userProfile.selectedAvatar === 'avatar_diamond' ? '💎' :
+                       userProfile.selectedAvatar === 'avatar_flame' ? '🔥' :
+                       userProfile.selectedAvatar === 'avatar_lion' ? '🦁' : '👑'}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[11px] sm:text-xs font-bold text-slate-200 hidden sm:inline max-w-[80px] truncate">
                   {userProfile?.displayName}
                 </span>

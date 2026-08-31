@@ -271,10 +271,10 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
 
                 <div className="text-left">
                   <span className="font-black text-base text-white block font-['Cairo']">
-                    ${pack.priceUsd}
+                    {playStoreItem?.price ? `${playStoreItem.price.value} ${playStoreItem.price.currency}` : pack.priceFormatted}
                   </span>
                   <span className="text-[10px] text-slate-400 block font-['Cairo']">
-                    {playStoreItem?.price ? `${playStoreItem.price.value} ${playStoreItem.price.currency}` : pack.priceFormatted}
+                    ${pack.priceUsd} USD
                   </span>
                 </div>
               </div>
@@ -294,7 +294,7 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                 onClick={handleExecutePlayBilling}
                 className="w-full py-3.5 rounded-xl bg-[#01875f] hover:bg-[#017250] active:scale-[0.98] text-white font-extrabold text-sm font-['Cairo'] flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all cursor-pointer"
               >
-                <span>متابعة الشراء عبر Google Play (${pack.priceUsd})</span>
+                <span>متابعة الشراء عبر Google Play ({pack.priceFormatted})</span>
               </button>
             </>
           ) : (
@@ -316,8 +316,11 @@ export const GooglePlayBillingSheet: React.FC<GooglePlayBillingSheetProps> = ({
                   </div>
                 </div>
                 <div className="text-left">
-                  <span className="font-bold text-sm text-white font-mono">
-                    ${pack.priceUsd}
+                  <span className="font-bold text-sm text-white font-['Cairo'] block">
+                    {pack.priceFormatted}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono block">
+                    (${pack.priceUsd} USD)
                   </span>
                 </div>
               </div>

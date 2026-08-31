@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import { X, Copy, Check, Users, Plus, ArrowLeft, Share2, Play, Home } from 'lucide-react';
+import { X, Copy, Check, Users, Plus, ArrowLeft, Share2, Play, Home, Gem, ShoppingBag } from 'lucide-react';
 import { soundManager } from '../lib/audio';
+import { UserProfile } from '../types';
 
 interface FriendInviteModalProps {
+  userProfile?: UserProfile | null;
   onClose: () => void;
   onCreateRoom: () => Promise<string>;
   onJoinRoom: (code: string) => Promise<void>;
+  onOpenShop?: (tab?: 'chests' | 'avatars' | 'categories' | 'gems') => void;
   currentCreatedCode?: string | null;
 }
 
 export const FriendInviteModal: React.FC<FriendInviteModalProps> = ({
+  userProfile,
   onClose,
   onCreateRoom,
   onJoinRoom,
+  onOpenShop,
   currentCreatedCode,
 }) => {
   const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose');
@@ -22,7 +27,21 @@ export const FriendInviteModal: React.FC<FriendInviteModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const hasEnoughGems = (userProfile?.gems || 0) >= 15;
+  const hasEnoughStars = (userProfile?.stars || 0) >= 20;
+
   const handleCreate = async () => {
+    if (!hasEnoughGems) {
+      soundManager.playError();
+      setErrorMsg('رصيد الجواهر غير كافٍ. يتطلب إنشاء الغرفة 15 جوهرة 💎');
+      return;
+    }
+    if (!hasEnoughStars) {
+      soundManager.playError();
+      setErrorMsg('رصيد نجوم التحدي غير كافٍ. تحتاج 20 ⭐ للرهان');
+      return;
+    }
+
     try {
       setIsProcessing(true);
       setErrorMsg(null);
@@ -122,8 +141,24 @@ export const FriendInviteModal: React.FC<FriendInviteModalProps> = ({
         </div>
 
         {errorMsg && (
-          <div className="bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs font-bold p-3 rounded-xl text-center">
-            {errorMsg}
+          <div className="space-y-2">
+            <div className="bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs font-bold p-3 rounded-xl text-center">
+              {errorMsg}
+            </div>
+            {!hasEnoughGems && onOpenShop && (
+              <button
+                id="modal-quick-recharge-btn"
+                onClick={() => {
+                  soundManager.playClick();
+                  onClose();
+                  onOpenShop('gems');
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs font-['Cairo'] flex items-center justify-center gap-2 shadow-md shadow-cyan-500/25 transition-all"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>شحن رصيد الجواهر الآن 💎</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -133,12 +168,20 @@ export const FriendInviteModal: React.FC<FriendInviteModalProps> = ({
             <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-3 text-xs text-slate-300 space-y-1">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-slate-400">تصريح إنشاء الغرفة:</span>
-                <span className="font-bold text-cyan-300">5 جواهر 💎</span>
+                <span className="font-bold text-cyan-300">15 جوهرة 💎</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-slate-400">رهان التحدي للفائز:</span>
                 <span className="font-bold text-amber-400">20 نجمة ⭐ (الجائزة 40 ⭐)</span>
               </div>
+              {userProfile && (
+                <div className="pt-1.5 mt-1 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                  <span>رصيدك الحالي:</span>
+                  <span className="font-bold text-slate-200">
+                    {userProfile.gems || 0} 💎 • {userProfile.stars || 0} ⭐
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -146,10 +189,17 @@ export const FriendInviteModal: React.FC<FriendInviteModalProps> = ({
                 id="choose-create-room-btn"
                 disabled={isProcessing}
                 onClick={handleCreate}
-                className="p-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-['Cairo'] text-sm flex flex-col items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all active:scale-95"
+                className={`p-5 rounded-2xl font-bold font-['Cairo'] text-sm flex flex-col items-center justify-center gap-2 shadow-lg transition-all active:scale-95 ${
+                  hasEnoughGems && hasEnoughStars
+                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25'
+                    : 'bg-slate-800/90 text-slate-300 border border-slate-700 hover:border-indigo-500/50'
+                }`}
               >
-                <Plus className="w-6 h-6" />
-                <span>إنشاء غرفة (5 💎)</span>
+                <Plus className="w-6 h-6 text-cyan-300" />
+                <span>إنشاء غرفة (15 💎)</span>
+                {!hasEnoughGems && (
+                  <span className="text-[10px] text-rose-400 font-normal">رصيد الجواهر غير كافٍ</span>
+                )}
               </button>
 
               <button

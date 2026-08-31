@@ -388,7 +388,7 @@ export default function App() {
   // 4. Friend Challenge (Room Creation / Join)
   const handleCreateFriendRoom = async (): Promise<string> => {
     if (!userProfile || !currentUser) throw new Error('يرجى تسجيل الدخول أولاً');
-    if ((userProfile.gems || 0) < 5) throw new Error('يتطلب إنشاء الغرفة تذكرة استضافة بـ 5 جواهر 💎');
+    if ((userProfile.gems || 0) < 15) throw new Error('يتطلب إنشاء الغرفة تذكرة استضافة بـ 15 جوهرة 💎');
     if ((userProfile.stars || 0) < 20) throw new Error('رصيد نجوم التحدي غير كافٍ (تحتاج 20 ⭐ للرهان)');
 
     const roomCode = `JDWL-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -427,7 +427,7 @@ export default function App() {
     };
 
     await setDoc(doc(db, 'matches', matchId), newMatch);
-    await deductGems(currentUser.uid, 5);
+    await deductGems(currentUser.uid, 15);
     await deductStars(currentUser.uid, 20);
     setCreatedRoomCode(roomCode);
     subscribeToActiveMatch(matchId);
@@ -1857,9 +1857,11 @@ export default function App() {
 
       {showFriendModal && (
         <FriendInviteModal
+          userProfile={userProfile}
           onClose={() => setShowFriendModal(false)}
           onCreateRoom={handleCreateFriendRoom}
           onJoinRoom={handleJoinFriendRoom}
+          onOpenShop={handleOpenShop}
           currentCreatedCode={createdRoomCode}
         />
       )}

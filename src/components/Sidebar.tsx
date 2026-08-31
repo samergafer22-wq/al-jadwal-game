@@ -145,11 +145,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {userProfile && (
             <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2">
               <div className="flex items-center gap-3">
-                <img
-                  src={userProfile.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${userProfile.uid}`}
-                  alt={userProfile.displayName}
-                  className="w-11 h-11 rounded-xl bg-slate-800 border border-emerald-500/30 object-cover"
-                />
+                <div className="relative">
+                  <img
+                    src={userProfile.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${userProfile.uid}`}
+                    alt={userProfile.displayName}
+                    className="w-11 h-11 rounded-xl bg-slate-800 border border-emerald-500/30 object-cover"
+                  />
+                  {userProfile.selectedAvatar && (
+                    <span 
+                      className="absolute -bottom-1.5 -right-1.5 text-xs bg-slate-900 border border-amber-500/40 rounded-full p-0.5 shadow leading-none"
+                      title="المظهر المفعّل"
+                    >
+                      {userProfile.selectedAvatar === 'avatar_crown' ? '👑' :
+                       userProfile.selectedAvatar === 'avatar_falcon' ? '🦅' :
+                       userProfile.selectedAvatar === 'avatar_diamond' ? '💎' :
+                       userProfile.selectedAvatar === 'avatar_flame' ? '🔥' :
+                       userProfile.selectedAvatar === 'avatar_lion' ? '🦁' : '👑'}
+                    </span>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <h4 className="font-bold text-sm text-white font-['Cairo'] truncate">
