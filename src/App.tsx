@@ -1391,6 +1391,7 @@ export default function App() {
       setUserProfile(null);
       setShowDeleteAccount(false);
       setShowSidebar(false);
+      setShowAuthModal(true);
       haptics.warning();
     } catch (err) {
       console.error('Failed to delete account:', err);
@@ -1414,9 +1415,15 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await logoutUser();
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
     setCurrentUser(null);
     setUserProfile(null);
+    setShowSidebar(false);
+    setShowAuthModal(true);
   };
 
   if (loadingUser) {

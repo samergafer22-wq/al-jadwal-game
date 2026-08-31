@@ -29,7 +29,7 @@ import { checkIsAdmin, PRIMARY_ADMIN_EMAIL } from '../lib/adminAuth';
 import { Dices, Crown } from 'lucide-react';
 
 interface LobbyViewProps {
-  userProfile: UserProfile;
+  userProfile: UserProfile | null;
   selectedCategoryIds: string[];
   onToggleCategory: (catId: string) => void;
   onStartQuickMatch: () => void;
@@ -80,12 +80,12 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     ? DAILY_TASKS.filter((t) => tasksState.tasks[t.id]?.completed).length
     : 0;
 
-  const winRate = userProfile.stats.totalMatches > 0
-    ? Math.round((userProfile.stats.wins / userProfile.stats.totalMatches) * 100)
+  const winRate = (userProfile?.stats?.totalMatches || 0) > 0
+    ? Math.round(((userProfile?.stats?.wins || 0) / (userProfile?.stats?.totalMatches || 1)) * 100)
     : 0;
 
-  const hasEnoughStars = userProfile.stars >= 20;
-  const isGuest = userProfile.isAnonymous || !userProfile.email;
+  const hasEnoughStars = (userProfile?.stars ?? 0) >= 20;
+  const isGuest = !userProfile || userProfile.isAnonymous || !userProfile.email;
 
   return (
     <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-x-hidden">
@@ -103,10 +103,10 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             <div>
               <div className="flex items-center justify-center sm:justify-start gap-2">
                 <span className="text-[11px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
-                  وضع الضيف مؤقت ⚠️
+                  {!userProfile ? 'لم تقم بتسجيل الدخول ⚠️' : 'وضع الضيف مؤقت ⚠️'}
                 </span>
                 <span className="text-xs text-slate-300 font-medium">
-                  {userProfile.displayName}
+                  {userProfile?.displayName || 'لاعب زائر'}
                 </span>
               </div>
               <h3 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
@@ -590,14 +590,14 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             <div className="bg-slate-800/60 p-3 rounded-2xl border border-slate-800 text-center">
               <span className="text-xs text-slate-400 block mb-1">المباريات</span>
               <span className="text-xl font-black text-white font-['Cairo']">
-                {userProfile.stats.totalMatches}
+                {userProfile?.stats?.totalMatches ?? 0}
               </span>
             </div>
 
             <div className="bg-slate-800/60 p-3 rounded-2xl border border-slate-800 text-center">
               <span className="text-xs text-emerald-400/90 block mb-1">الانتصارات</span>
               <span className="text-xl font-black text-emerald-400 font-['Cairo']">
-                {userProfile.stats.wins}
+                {userProfile?.stats?.wins ?? 0}
               </span>
             </div>
 
@@ -618,7 +618,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             >
               <span className="text-xs text-amber-400/90 block mb-1 font-bold group-hover:text-amber-300">أعلى سكور 🏆</span>
               <span className="text-xl font-black text-amber-400 font-['Cairo'] group-hover:scale-105 inline-block transition-transform">
-                {userProfile.stats.highestScore || 0}
+                {userProfile?.stats?.highestScore || 0}
               </span>
             </div>
           </div>
@@ -659,7 +659,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {ALL_CATEGORIES.map((cat) => {
-            const isUnlocked = !cat.isExtra || (userProfile.unlockedCategories && (
+            const isUnlocked = !cat.isExtra || (userProfile?.unlockedCategories && (
               userProfile.unlockedCategories.includes(cat.id) ||
               (cat.id === 'foods' && userProfile.unlockedCategories.includes('food')) ||
               (cat.id === 'tv_shows' && userProfile.unlockedCategories.includes('series')) ||
