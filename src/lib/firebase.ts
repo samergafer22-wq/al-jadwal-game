@@ -413,72 +413,95 @@ export async function logoutUser(): Promise<void> {
 
 // User Profile Management
 export async function initUserProfile(user: User, customDisplayName?: string, customEmail?: string): Promise<UserProfile> {
-  const userRef = doc(db, 'users', user.uid);
-  const snap = await getDoc(userRef);
-  
   const today = new Date().toISOString().split('T')[0];
   const userEmail = customEmail || user.email || undefined;
-  
-  if (!snap.exists()) {
-    const defaultProfile: UserProfile = {
-      uid: user.uid,
-      displayName: customDisplayName || user.displayName || `لاعب_${Math.floor(1000 + Math.random() * 9000)}`,
-      photoURL: user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`,
-      email: userEmail,
-      isAnonymous: user.isAnonymous,
-      stars: 100, // 100 Welcome Stars
-      gems: 10, // 10 Welcome Gems
-      hints: 3, // 3 Welcome In-Game Hints
-      stats: {
-        wins: 0,
-        losses: 0,
-        totalMatches: 0,
-        roundsWon: 0,
-        highestScore: 0,
-        totalWordsAccepted: 0,
-        rareLetterWins: 0,
-        fastStopsCount: 0,
-      },
-      unlockedCategories: ['name', 'animal', 'plant', 'inanimate', 'country'],
-      unlockedThemes: ['classic'],
-      activeTheme: 'classic',
-      rewardedAdsToday: 0,
-      lastRewardDate: today,
-      matchesPlayedSinceLastInterstitial: 0,
-      luckySpinStreak: 1,
-      totalSpinsCount: 0,
-      achievements: {},
-      hapticsEnabled: true,
-      soundEnabled: true,
-      createdAt: Date.now(),
-      lastSeen: Date.now(),
-    };
+  const profileKey = `aljadwal_profile_${user.uid}`;
+
+  const defaultProfile: UserProfile = {
+    uid: user.uid,
+    displayName: customDisplayName || user.displayName || `لاعب_${Math.floor(1000 + Math.random() * 9000)}`,
+    photoURL: user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`,
+    email: userEmail,
+    isAnonymous: user.isAnonymous,
+    stars: 100, // 100 Welcome Stars
+    gems: 10, // 10 Welcome Gems
+    hints: 3, // 3 Welcome In-Game Hints
+    stats: {
+      wins: 0,
+      losses: 0,
+      totalMatches: 0,
+      roundsWon: 0,
+      highestScore: 0,
+      totalWordsAccepted: 0,
+      rareLetterWins: 0,
+      fastStopsCount: 0,
+    },
+    unlockedCategories: ['name', 'animal', 'plant', 'inanimate', 'country'],
+    unlockedThemes: ['classic'],
+    activeTheme: 'classic',
+    rewardedAdsToday: 0,
+    lastRewardDate: today,
+    matchesPlayedSinceLastInterstitial: 0,
+    luckySpinStreak: 1,
+    totalSpinsCount: 0,
+    achievements: {},
+    hapticsEnabled: true,
+    soundEnabled: true,
+    createdAt: Date.now(),
+    lastSeen: Date.now(),
+  };
+
+  try {
+    const userRef = doc(db, 'users', user.uid);
+    const snap = await getDoc(userRef);
     
-    await setDoc(userRef, defaultProfile);
+    if (!snap.exists()) {
+      await setDoc(userRef, defaultProfile).catch((e) => console.warn('setDoc warn:', e));
+      try {
+        localStorage.setItem(profileKey, JSON.stringify(defaultProfile));
+      } catch {}
+      return defaultProfile;
+    } else {
+      const data = snap.data() as UserProfile;
+      const updates: Partial<UserProfile> = { lastSeen: Date.now() };
+      if (data.hints === undefined) updates.hints = 3;
+      if (data.hapticsEnabled === undefined) updates.hapticsEnabled = true;
+      if (data.soundEnabled === undefined) updates.soundEnabled = true;
+      if (data.stats.totalWordsAccepted === undefined) updates['stats.totalWordsAccepted' as any] = (data.stats.wins * 8) || 0;
+      if (data.stats.rareLetterWins === undefined) updates['stats.rareLetterWins' as any] = 0;
+      if (data.stats.fastStopsCount === undefined) updates['stats.fastStopsCount' as any] = 0;
+
+      if (data.lastRewardDate !== today) {
+        updates.rewardedAdsToday = 0;
+        updates.lastRewardDate = today;
+        data.rewardedAdsToday = 0;
+        data.lastRewardDate = today;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateDoc(userRef, updates as any).catch((e) => console.warn('updateDoc warn:', e));
+      }
+
+      const mergedProfile = { ...data, ...updates, isAnonymous: user.isAnonymous, email: userEmail || data.email };
+      try {
+        localStorage.setItem(profileKey, JSON.stringify(mergedProfile));
+      } catch {}
+      return mergedProfile;
+    }
+  } catch (err) {
+    console.warn('Firestore offline/restricted profile fallback:', err);
+    // Retrieve from local cache or return defaultProfile
+    const localCached = localStorage.getItem(profileKey);
+    if (localCached) {
+      try {
+        const parsed = JSON.parse(localCached);
+        return { ...parsed, isAnonymous: user.isAnonymous, email: userEmail || parsed.email };
+      } catch {}
+    }
+    try {
+      localStorage.setItem(profileKey, JSON.stringify(defaultProfile));
+    } catch {}
     return defaultProfile;
-  } else {
-    const data = snap.data() as UserProfile;
-    // Backfill any missing new fields for existing accounts
-    const updates: Partial<UserProfile> = { lastSeen: Date.now() };
-    if (data.hints === undefined) updates.hints = 3;
-    if (data.hapticsEnabled === undefined) updates.hapticsEnabled = true;
-    if (data.soundEnabled === undefined) updates.soundEnabled = true;
-    if (data.stats.totalWordsAccepted === undefined) updates['stats.totalWordsAccepted' as any] = (data.stats.wins * 8) || 0;
-    if (data.stats.rareLetterWins === undefined) updates['stats.rareLetterWins' as any] = 0;
-    if (data.stats.fastStopsCount === undefined) updates['stats.fastStopsCount' as any] = 0;
-
-    // Reset daily rewarded ads if new day
-    if (data.lastRewardDate !== today) {
-      updates.rewardedAdsToday = 0;
-      updates.lastRewardDate = today;
-      data.rewardedAdsToday = 0;
-      data.lastRewardDate = today;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      await updateDoc(userRef, updates as any);
-    }
-    return { ...data, ...updates, isAnonymous: user.isAnonymous, email: userEmail || data.email };
   }
 }
 
