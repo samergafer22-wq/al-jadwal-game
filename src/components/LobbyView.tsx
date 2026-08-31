@@ -85,6 +85,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     : 0;
 
   const hasEnoughStars = (userProfile?.stars ?? 0) >= 20;
+  const hasEnoughGemsForMatch = (userProfile?.gems ?? 0) >= 5;
+  const canPlayQuickMatch = hasEnoughStars && hasEnoughGemsForMatch;
   const isGuest = !userProfile || userProfile.isAnonymous || !userProfile.email;
 
   return (
@@ -435,27 +437,41 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           </div>
 
           <div className="pt-3 border-t border-slate-800 space-y-3">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>الرهان المطلوب:</span>
-              <span className="font-bold text-amber-400 flex items-center gap-1 font-['Cairo']">
-                20 ⭐
-              </span>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between text-slate-400">
+                <span>تذكرة المشاركة:</span>
+                <span className="font-bold text-cyan-300 flex items-center gap-1 font-['Cairo']">
+                  5 💎
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-400">
+                <span>رهان الجولة (للفائز):</span>
+                <span className="font-bold text-amber-400 flex items-center gap-1 font-['Cairo']">
+                  20 ⭐ (الجائزة 40 ⭐)
+                </span>
+              </div>
             </div>
             <button
               id="start-quick-match-btn"
-              disabled={isSearchingMatch || !hasEnoughStars}
+              disabled={isSearchingMatch || !canPlayQuickMatch}
               onClick={() => {
                 soundManager.playClick();
                 onStartQuickMatch();
               }}
               className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm font-['Cairo'] flex items-center justify-center gap-2 shadow-lg transition-all ${
-                !hasEnoughStars
+                !canPlayQuickMatch
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                   : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/25 active:scale-98'
               }`}
             >
               <Zap className="w-4 h-4" />
-              <span>{hasEnoughStars ? 'ابدأ البحث الآن (20 ⭐)' : 'رصيد النجوم غير كافٍ'}</span>
+              <span>
+                {!hasEnoughGemsForMatch
+                  ? 'تحتاج 5 جواهر 💎'
+                  : !hasEnoughStars
+                  ? 'تحتاج 20 نجمة ⭐'
+                  : 'ابدأ البحث الآن (5 💎 + 20 ⭐)'}
+              </span>
             </button>
           </div>
         </div>
@@ -484,24 +500,28 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           </div>
 
           <div className="pt-3 border-t border-slate-800 space-y-3">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>الرهان المطلوب:</span>
-              <span className="font-bold text-amber-400 flex items-center gap-1 font-['Cairo']">
-                20 ⭐
-              </span>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between text-slate-400">
+                <span>تصريح إنشاء الغرفة:</span>
+                <span className="font-bold text-cyan-300 flex items-center gap-1 font-['Cairo']">
+                  5 💎
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-400">
+                <span>رهان التحدي (للفائز):</span>
+                <span className="font-bold text-amber-400 flex items-center gap-1 font-['Cairo']">
+                  20 ⭐ (الجائزة 40 ⭐)
+                </span>
+              </div>
             </div>
             <button
               id="start-friend-challenge-btn"
-              disabled={isSearchingMatch || !hasEnoughStars}
+              disabled={isSearchingMatch}
               onClick={() => {
                 soundManager.playClick();
                 onOpenFriendChallenge();
               }}
-              className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm font-['Cairo'] flex items-center justify-center gap-2 shadow-lg transition-all ${
-                !hasEnoughStars
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25 active:scale-98'
-              }`}
+              className="w-full py-3.5 px-4 rounded-2xl font-black text-sm font-['Cairo'] flex items-center justify-center gap-2 shadow-lg transition-all bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25 active:scale-98"
             >
               <Users className="w-4 h-4" />
               <span>إنشاء أو انضمام لغرفة</span>

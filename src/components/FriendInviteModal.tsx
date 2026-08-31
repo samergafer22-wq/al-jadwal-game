@@ -129,28 +129,41 @@ export const FriendInviteModal: React.FC<FriendInviteModalProps> = ({
 
         {/* Mode: Choose Create or Join */}
         {mode === 'choose' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              id="choose-create-room-btn"
-              disabled={isProcessing}
-              onClick={handleCreate}
-              className="p-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-['Cairo'] text-sm flex flex-col items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all active:scale-95"
-            >
-              <Plus className="w-6 h-6" />
-              <span>إنشاء غرفة جديدة</span>
-            </button>
+          <div className="space-y-3">
+            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-3 text-xs text-slate-300 space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">تصريح إنشاء الغرفة:</span>
+                <span className="font-bold text-cyan-300">5 جواهر 💎</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">رهان التحدي للفائز:</span>
+                <span className="font-bold text-amber-400">20 نجمة ⭐ (الجائزة 40 ⭐)</span>
+              </div>
+            </div>
 
-            <button
-              id="choose-join-room-btn"
-              onClick={() => {
-                soundManager.playClick();
-                setMode('join');
-              }}
-              className="p-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold font-['Cairo'] text-sm flex flex-col items-center justify-center gap-2 border border-slate-700 transition-all active:scale-95"
-            >
-              <Play className="w-6 h-6 text-emerald-400" />
-              <span>انضمام برمز الغرفة</span>
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                id="choose-create-room-btn"
+                disabled={isProcessing}
+                onClick={handleCreate}
+                className="p-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-['Cairo'] text-sm flex flex-col items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all active:scale-95"
+              >
+                <Plus className="w-6 h-6" />
+                <span>إنشاء غرفة (5 💎)</span>
+              </button>
+
+              <button
+                id="choose-join-room-btn"
+                onClick={() => {
+                  soundManager.playClick();
+                  setMode('join');
+                }}
+                className="p-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold font-['Cairo'] text-sm flex flex-col items-center justify-center gap-2 border border-slate-700 transition-all active:scale-95"
+              >
+                <Play className="w-6 h-6 text-emerald-400" />
+                <span>انضمام برمز الغرفة</span>
+              </button>
+            </div>
           </div>
         )}
 

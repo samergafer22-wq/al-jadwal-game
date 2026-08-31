@@ -36,9 +36,10 @@ export interface ChestDef {
   id: string;
   name: string;
   tier: 'bronze' | 'silver' | 'gold';
-  costType: 'stars' | 'gems';
+  costType: 'gems';
   costAmount: number;
   description: string;
+  oddsDescription: string;
   badge: string;
   accentColor: string;
   iconBg: string;
@@ -50,9 +51,10 @@ export const REWARD_CHESTS: ChestDef[] = [
     id: 'chest_bronze',
     name: 'صندوق البداية البرونزي',
     tier: 'bronze',
-    costType: 'stars',
-    costAmount: 60,
-    description: 'يحتوي على تلميحات سريعة، وفرصة الحصول على جواهر مع استرجاع جزء من النجوم.',
+    costType: 'gems',
+    costAmount: 10,
+    description: 'يحتوي على رصيد نجوم إضافية مع فرصة تلميحات واسترجاع جواهر.',
+    oddsDescription: '100% نجوم (20-45 ⭐) • 50% تلميح 💡 • 20% جوهرة 💎',
     badge: 'شائع 🥉',
     accentColor: 'border-amber-700/60',
     iconBg: 'from-amber-800 to-amber-950',
@@ -62,9 +64,10 @@ export const REWARD_CHESTS: ChestDef[] = [
     id: 'chest_silver',
     name: 'صندوق الأبطال الفضي',
     tier: 'silver',
-    costType: 'stars',
-    costAmount: 180,
-    description: 'يحتوي على 1-2 تلميح، وجواهر قيّمة، مع استرجاع جزء من النجوم.',
+    costType: 'gems',
+    costAmount: 15,
+    description: 'يحتوي على رصيد وفير من النجوم وتلميحات مضمونة وجواهر قيّمة.',
+    oddsDescription: '100% نجوم (45-90 ⭐) • 100% تلميحات (1-2 💡) • 50% جواهر (1-3 💎)',
     badge: 'نادر 🥈',
     accentColor: 'border-cyan-400/60',
     iconBg: 'from-cyan-700 to-blue-950',
@@ -75,8 +78,9 @@ export const REWARD_CHESTS: ChestDef[] = [
     name: 'صندوق الأساطير الذهبي',
     tier: 'gold',
     costType: 'gems',
-    costAmount: 30,
-    description: 'صندوق فاخر يمنح رصيداً كبيراً من النجوم والتلميحات وفرصة فتح فئة جديدة!',
+    costAmount: 25,
+    description: 'صندوق فاخر يمنح رصيداً ضخماً من النجوم والتلميحات وفرصة فتح فئة جديدة!',
+    oddsDescription: '100% نجوم (120-220 ⭐) • 100% تلميحات (2-4 💡) • 35% فتح فئة مقفلة 🔓 • 60% جواهر (2-5 💎)',
     badge: 'أسطوري 👑',
     accentColor: 'border-amber-400',
     iconBg: 'from-amber-500 to-yellow-600',
@@ -251,19 +255,11 @@ export const ShopModal: React.FC<ShopModalProps> = ({
   // Open Mystery Chest Logic with Confetti celebration
   const handleOpenChest = async (chest: ChestDef) => {
     const costAmount = chest.costAmount;
-    if (chest.costType === 'stars') {
-      if ((userProfile.stars || 0) < costAmount) {
-        soundManager.playError();
-        showToast(`رصيدك غير كافٍ. تحتاج إلى ${costAmount} ⭐`);
-        return;
-      }
-    } else {
-      if ((userProfile.gems || 0) < costAmount) {
-        soundManager.playError();
-        showToast(`رصيد الجواهر غير كافٍ. تحتاج إلى ${costAmount} 💎`);
-        setActiveTab('gems');
-        return;
-      }
+    if ((userProfile.gems || 0) < costAmount) {
+      soundManager.playError();
+      showToast(`رصيد الجواهر غير كافٍ. تحتاج إلى ${costAmount} 💎`);
+      setActiveTab('gems');
+      return;
     }
 
     // Start opening sequence
@@ -279,24 +275,24 @@ export const ShopModal: React.FC<ShopModalProps> = ({
     let wonCategory: CategoryDef | undefined = undefined;
 
     if (chest.tier === 'bronze') {
-      // Cost: 60 Stars -> Return: 15 - 30 Stars (always < cost), 50% 1 hint, 20% 1 gem
-      wonStars = Math.floor(Math.random() * 16) + 15; // 15 - 30
+      // Bronze: Cost 10 Gems -> 20 - 45 Stars, 50% 1 hint, 20% 1 gem rebate
+      wonStars = Math.floor(Math.random() * 26) + 20; // 20 - 45
       wonHints = Math.random() > 0.5 ? 1 : 0;
       wonGems = Math.random() > 0.8 ? 1 : 0;
     } else if (chest.tier === 'silver') {
-      // Cost: 180 Stars -> Return: 40 - 75 Stars (always < cost), 1 - 2 hints, 1 - 3 gems
-      wonStars = Math.floor(Math.random() * 36) + 40; // 40 - 75
+      // Silver: Cost 15 Gems -> 45 - 90 Stars, 1 - 2 hints, 50% 1 - 3 gems rebate
+      wonStars = Math.floor(Math.random() * 46) + 45; // 45 - 90
       wonHints = Math.floor(Math.random() * 2) + 1; // 1 - 2
-      wonGems = Math.floor(Math.random() * 3) + 1; // 1 - 3
+      wonGems = Math.random() > 0.5 ? Math.floor(Math.random() * 3) + 1 : 0; // 0 or 1 - 3
     } else {
-      // Gold: Cost: 30 Gems -> Return: 150 - 250 Stars, 2 - 4 hints, 0 or 2 - 5 gems rebate
-      wonStars = Math.floor(Math.random() * 101) + 150; // 150 - 250
+      // Gold: Cost 25 Gems -> 120 - 220 Stars, 2 - 4 hints, 60% 2 - 5 gems rebate, 35% category unlock
+      wonStars = Math.floor(Math.random() * 101) + 120; // 120 - 220
       wonHints = Math.floor(Math.random() * 3) + 2; // 2 - 4
-      wonGems = Math.random() > 0.5 ? Math.floor(Math.random() * 4) + 2 : 0; // 0 or 2 - 5
+      wonGems = Math.random() > 0.4 ? Math.floor(Math.random() * 4) + 2 : 0; // 0 or 2 - 5
 
-      // 25% Chance of random locked category unlock!
+      // 35% Chance of random locked category unlock!
       const lockedCategories = EXTRA_CATEGORIES.filter((c) => !isCategoryUnlocked(c.id));
-      if (lockedCategories.length > 0 && Math.random() > 0.75) {
+      if (lockedCategories.length > 0 && Math.random() > 0.65) {
         const randIdx = Math.floor(Math.random() * lockedCategories.length);
         wonCategory = lockedCategories[randIdx];
       }
@@ -325,7 +321,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
       // Save to database
       if (onClaimChestReward) {
         await onClaimChestReward(
-          chest.costType === 'stars' ? { stars: costAmount } : { gems: costAmount },
+          { gems: costAmount },
           {
             stars: wonStars,
             gems: wonGems,
@@ -541,21 +537,25 @@ export const ShopModal: React.FC<ShopModalProps> = ({
         {/* CHESTS TAB */}
         {activeTab === 'chests' && (
           <div className="space-y-4 animate-in fade-in">
-            <div className="text-right">
-              <h4 className="text-sm font-black text-white font-['Cairo'] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>افتح صناديق الكنز واكسب تلميحات وجواهر ونجوم إضافية:</span>
-              </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
-                كل صندوق يحتوي على مكافآت فورية مع تأثيرات ألعاب نارية واحتفالية حماسية!
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-right">
+              <div>
+                <h4 className="text-sm font-black text-white font-['Cairo'] flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>افتح صناديق الكنز واكسب تلميحات وجواهر ونجوم إضافية:</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  كل صندوق يحتوي على مكافآت فورية مع تأثيرات احتفالية حماسية!
+                </p>
+              </div>
+              <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-1 text-[11px] text-slate-300 flex items-center gap-1.5 self-start sm:self-auto">
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <span>نسب وفرص المكافآت معلنة وشفافة 100%</span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {REWARD_CHESTS.map((chest) => {
-                const canAfford = chest.costType === 'stars' 
-                  ? (userProfile.stars || 0) >= chest.costAmount 
-                  : (userProfile.gems || 0) >= chest.costAmount;
+                const canAfford = (userProfile.gems || 0) >= chest.costAmount;
 
                 return (
                   <div
@@ -567,8 +567,8 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                       <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
                         {chest.badge}
                       </span>
-                      <span className="text-xs font-black text-amber-300 font-['Cairo'] flex items-center gap-1">
-                        {chest.costAmount} {chest.costType === 'stars' ? '⭐' : '💎'}
+                      <span className="text-xs font-black text-cyan-300 font-['Cairo'] flex items-center gap-1">
+                        {chest.costAmount} 💎
                       </span>
                     </div>
 
@@ -580,39 +580,45 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                       <div className="absolute inset-0 bg-amber-400/10 blur-xl rounded-full pointer-events-none" />
                     </div>
 
-                    <div>
+                    <div className="space-y-1.5">
                       <h4 className="font-black text-base text-white font-['Cairo']">
                         {chest.name}
                       </h4>
-                      <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
                         {chest.description}
                       </p>
+
+                      {/* Explicit Probabilities / Loot Box Odds (Google Play Compliance) */}
+                      <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-2 text-[10px] text-amber-300/90 font-medium leading-relaxed text-right">
+                        <span className="font-bold text-slate-300 block mb-0.5">فرص ومحتويات الصندوق:</span>
+                        {chest.oddsDescription}
+                      </div>
                     </div>
 
-                      {/* Open Button */}
-                      <div className="pt-2 border-t border-slate-800/80">
-                        <button
-                          id={`open-chest-btn-${chest.id}`}
-                          disabled={!canAfford || isChestOpeningAnim}
-                          onClick={() => handleOpenChest(chest)}
-                          className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs font-['Cairo'] flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
-                            !canAfford || isChestOpeningAnim
-                              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                              : chest.tier === 'gold'
-                                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/25'
-                                : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
-                          }`}
-                        >
-                          <Zap className="w-3.5 h-3.5" />
-                          <span>
-                            {isChestOpeningAnim && openingChest?.id === chest.id
-                              ? 'جارِ فتح الصندوق...'
-                              : canAfford
-                                ? `فتح الصندوق (${chest.costAmount} ${chest.costType === 'stars' ? '⭐' : '💎'})`
-                                : 'الرصيد لا يكفي'}
-                          </span>
-                        </button>
-                      </div>
+                    {/* Open Button */}
+                    <div className="pt-2 border-t border-slate-800/80">
+                      <button
+                        id={`open-chest-btn-${chest.id}`}
+                        disabled={!canAfford || isChestOpeningAnim}
+                        onClick={() => handleOpenChest(chest)}
+                        className={`w-full py-2.5 px-3 rounded-2xl font-black text-xs font-['Cairo'] flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
+                          !canAfford || isChestOpeningAnim
+                            ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                            : chest.tier === 'gold'
+                              ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/25'
+                              : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/20'
+                        }`}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>
+                          {isChestOpeningAnim && openingChest?.id === chest.id
+                            ? 'جارِ فتح الصندوق...'
+                            : canAfford
+                              ? `فتح الصندوق (${chest.costAmount} 💎)`
+                              : `تحتاج ${chest.costAmount} 💎`}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 );
               })}

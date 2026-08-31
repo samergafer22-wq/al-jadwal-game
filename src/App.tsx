@@ -239,8 +239,13 @@ export default function App() {
   // 3. Matchmaker: Quick Match (Realtime Firestore Queue with Fast Bot Fallback)
   const handleStartQuickMatch = async () => {
     if (!userProfile || !currentUser) return;
-    if (userProfile.stars < 20) {
-      alert('عفواً، رصيدك من نجوم التحدي أقل من 20 نجمة. يمكنك مشاهدة إعلان مكافأة مجاني للحصول على +20 نجمة!');
+    if ((userProfile.gems || 0) < 5) {
+      alert('عفواً، يتطلب دخول التحدي السريع تذكرة مشاركة بـ 5 جواهر 💎. يمكنك الحصول على باقات الجواهر من المتجر!');
+      handleOpenShop('gems');
+      return;
+    }
+    if ((userProfile.stars || 0) < 20) {
+      alert('عفواً، رصيدك من نجوم التحدي أقل من 20 نجمة ⭐. يمكنك مشاهدة إعلان مكافأة مجاني للحصول على +20 نجمة!');
       return;
     }
 
@@ -312,7 +317,8 @@ export default function App() {
         // Link match to opponent queue doc and delete it
         await updateDoc(doc(db, 'matchmaking', matchedDoc.id), { matchId });
 
-        // Deduct 20 stars from current user
+        // Deduct 5 gems (ticket) + 20 stars (wager)
+        await deductGems(currentUser.uid, 5);
         await deductStars(currentUser.uid, 20);
 
         setCurrentMatch(newMatch);
@@ -342,7 +348,8 @@ export default function App() {
             setIsSearchingMatch(false);
             if (matchmakingTimeoutRef.current) clearTimeout(matchmakingTimeoutRef.current);
             
-            // Deduct 20 stars
+            // Deduct 5 gems (ticket) + 20 stars (wager)
+            await deductGems(currentUser.uid, 5);
             await deductStars(currentUser.uid, 20);
             subscribeToActiveMatch(data.matchId);
           }
@@ -380,7 +387,8 @@ export default function App() {
   // 4. Friend Challenge (Room Creation / Join)
   const handleCreateFriendRoom = async (): Promise<string> => {
     if (!userProfile || !currentUser) throw new Error('يرجى تسجيل الدخول أولاً');
-    if (userProfile.stars < 20) throw new Error('رصيد نجوم التحدي غير كافٍ (تحتاج 20 ⭐)');
+    if ((userProfile.gems || 0) < 5) throw new Error('يتطلب إنشاء الغرفة تذكرة استضافة بـ 5 جواهر 💎');
+    if ((userProfile.stars || 0) < 20) throw new Error('رصيد نجوم التحدي غير كافٍ (تحتاج 20 ⭐ للرهان)');
 
     const roomCode = `JDWL-${Math.floor(1000 + Math.random() * 9000)}`;
     const matchId = `match_friend_${Date.now()}`;
@@ -418,6 +426,8 @@ export default function App() {
     };
 
     await setDoc(doc(db, 'matches', matchId), newMatch);
+    await deductGems(currentUser.uid, 5);
+    await deductStars(currentUser.uid, 20);
     setCreatedRoomCode(roomCode);
     subscribeToActiveMatch(matchId);
 
@@ -540,6 +550,7 @@ export default function App() {
     };
 
     if (isWagered) {
+      deductGems(currentUser.uid, 5);
       deductStars(currentUser.uid, 20);
     }
 
@@ -923,12 +934,48 @@ export default function App() {
 
   // Helper: Deduct Stars
   const deductStars = async (uid: string, amount: number) => {
-    const userRef = doc(db, 'users', uid);
-    const snap = await getDoc(userRef);
-    if (snap.exists()) {
-      const current = snap.data().stars || 0;
-      await updateDoc(userRef, { stars: Math.max(0, current - amount) });
-    }
+    setUserProfile((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, stars: Math.max(0, (prev.stars || 0) - amount) };
+      if (!currentUser || currentUser.isAnonymous) {
+        try {
+          localStorage.setItem('aljadwal_guest_profile', JSON.stringify(updated));
+        } catch (e) {}
+      }
+      return updated;
+    });
+
+    try {
+      const userRef = doc(db, 'users', uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const current = snap.data().stars || 0;
+        await updateDoc(userRef, { stars: Math.max(0, current - amount) });
+      }
+    } catch (e) {}
+  };
+
+  // Helper: Deduct Gems
+  const deductGems = async (uid: string, amount: number) => {
+    setUserProfile((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, gems: Math.max(0, (prev.gems || 0) - amount) };
+      if (!currentUser || currentUser.isAnonymous) {
+        try {
+          localStorage.setItem('aljadwal_guest_profile', JSON.stringify(updated));
+        } catch (e) {}
+      }
+      return updated;
+    });
+
+    try {
+      const userRef = doc(db, 'users', uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const current = snap.data().gems || 0;
+        await updateDoc(userRef, { gems: Math.max(0, current - amount) });
+      }
+    } catch (e) {}
   };
 
   // Helper: Award Stars
