@@ -363,36 +363,66 @@ export const ShopModal: React.FC<ShopModalProps> = ({
   return (
     <div 
       id="shop-modal"
-      className="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto"
     >
-      <div className="bg-slate-900 border-2 border-cyan-500/40 rounded-3xl p-5 sm:p-6 max-w-3xl w-full shadow-2xl space-y-5 my-auto animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-slate-900 border border-slate-700/80 sm:border-2 sm:border-cyan-500/40 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 max-w-3xl w-full shadow-2xl space-y-3.5 sm:space-y-4 my-auto animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header & Wallets */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30 shadow-inner">
-              <ShoppingBag className="w-6 h-6" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 sm:pb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30 shrink-0 shadow-inner">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div className="text-right min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="font-black text-sm sm:text-lg text-white font-['Cairo']">
+                    متجر الجواهر والصناديق
+                  </h3>
+                  <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 whitespace-nowrap">
+                    جوائز ومكافآت
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 truncate">
+                  افتح صناديق الكنز واقتنِ فئات وباقات جديدة
+                </p>
+              </div>
             </div>
-            <div className="text-right">
-              <h3 className="font-extrabold text-lg text-white font-['Cairo'] flex items-center gap-2">
-                <span>متجر الجواهر وصناديق الجوائز</span>
-                <span className="text-[11px] font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
-                  جوائز ومكافآت
-                </span>
-              </h3>
-              <p className="text-xs text-slate-400">
-                افتح صناديق المكافآت السحرية واقتنِ فئات وباقات جواهر جديدة
-              </p>
+
+            {/* Mobile close & home buttons */}
+            <div className="flex items-center gap-1.5 sm:hidden shrink-0">
+              <button
+                id="shop-modal-go-home-btn-mobile"
+                onClick={() => {
+                  soundManager.playClick();
+                  onClose();
+                }}
+                className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors"
+                title="الرئيسية"
+              >
+                <Home className="w-4 h-4" />
+              </button>
+              <button
+                id="close-shop-modal-btn-mobile"
+                onClick={() => {
+                  soundManager.playClick();
+                  onClose();
+                }}
+                className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition-colors"
+                title="إغلاق"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center justify-between sm:justify-end gap-2">
             {/* User Stars Counter */}
-            <div className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-2xl border border-amber-500/40 shadow-sm">
-              <span className="text-base">⭐</span>
+            <div className="flex-1 sm:flex-initial flex items-center justify-center sm:justify-start gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl sm:rounded-2xl border border-amber-500/40 shadow-sm">
+              <span className="text-sm sm:text-base">⭐</span>
               <div className="text-right">
-                <span className="text-[10px] text-slate-400 block leading-none">نجومك</span>
-                <span className="text-xs font-black text-amber-400 font-['Cairo']">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 block leading-none">نجومك</span>
+                <span className="text-xs sm:text-sm font-black text-amber-400 font-['Cairo']">
                   {userProfile?.stars || 0}
                 </span>
               </div>
@@ -401,29 +431,30 @@ export const ShopModal: React.FC<ShopModalProps> = ({
             {/* User Gems Counter */}
             <div 
               onClick={() => setActiveTab('gems')}
-              className="flex items-center gap-2 bg-slate-800/90 hover:bg-slate-800 px-3.5 py-1.5 rounded-2xl border border-cyan-500/40 cursor-pointer transition-all shadow-sm group"
+              className="flex-1 sm:flex-initial flex items-center justify-center sm:justify-start gap-1.5 bg-slate-800/90 hover:bg-slate-800 px-3 py-1.5 rounded-xl sm:rounded-2xl border border-cyan-500/40 cursor-pointer transition-all shadow-sm group"
               title="اضغط لشراء المزيد من الجواهر عبر Google Play"
             >
-              <span className="text-lg group-hover:scale-110 transition-transform">💎</span>
+              <span className="text-sm sm:text-lg group-hover:scale-110 transition-transform">💎</span>
               <div className="text-right">
-                <span className="text-[10px] text-slate-400 block leading-none">جواهرك</span>
-                <span className="text-xs font-black text-cyan-400 font-['Cairo']">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 block leading-none">جواهرك</span>
+                <span className="text-xs sm:text-sm font-black text-cyan-400 font-['Cairo']">
                   {userProfile?.gems || 0}
                 </span>
               </div>
             </div>
 
+            {/* Desktop-only action buttons */}
             <button
               id="shop-modal-go-home-btn"
               onClick={() => {
                 soundManager.playClick();
                 onClose();
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-black font-['Cairo'] transition-colors"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-black font-['Cairo'] transition-colors"
               title="العودة للقائمة الرئيسية"
             >
               <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">الرئيسية</span>
+              <span>الرئيسية</span>
             </button>
 
             <button
@@ -432,7 +463,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                 soundManager.playClick();
                 onClose();
               }}
-              className="p-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer border border-slate-700"
+              className="hidden sm:block p-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer border border-slate-700"
               title="إغلاق"
             >
               <X className="w-5 h-5" />
@@ -441,37 +472,37 @@ export const ShopModal: React.FC<ShopModalProps> = ({
         </div>
 
         {/* Google Play Policy Compliance Disclaimer */}
-        <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2.5">
+        <div className="bg-slate-950/60 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-800 text-[10px] sm:text-[11px] text-slate-400 flex items-start gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-          <span>
-            <strong>التزام سياسة أمان Google Play:</strong> الجواهر تُستخدم حصريًا لفتح فئات ومحتوى إضافي دائم ومظاهر جمالية، ولا يمكن المراهنة بها في المباريات (المراهنات برصيد النجوم المجانية فقط ⭐).
+          <span className="leading-relaxed">
+            <strong>أمان Google Play:</strong> الجواهر تُستخدم لفتح فئات ومحتوى إضافي دائم ومظاهر جمالية (المراهنات برصيد النجوم المجانية فقط ⭐).
           </span>
         </div>
 
         {/* Toast alert */}
         {toastMessage && (
-          <div className="bg-emerald-500/20 border border-emerald-500 text-emerald-300 text-xs font-bold p-3 rounded-2xl text-center animate-in fade-in flex items-center justify-center gap-2">
+          <div className="bg-emerald-500/20 border border-emerald-500 text-emerald-300 text-xs font-bold p-2.5 sm:p-3 rounded-2xl text-center animate-in fade-in flex items-center justify-center gap-2">
             <CheckCircle2 className="w-4 h-4" />
             <span>{toastMessage}</span>
           </div>
         )}
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 gap-1">
+        <div className="grid grid-cols-3 bg-slate-950/80 p-1 rounded-xl sm:rounded-2xl border border-slate-800 gap-1">
           <button
             id="tab-chests-btn"
             onClick={() => {
               soundManager.playClick();
               setActiveTab('chests');
             }}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-black font-['Cairo'] transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black font-['Cairo'] transition-all flex items-center justify-center gap-1 truncate ${
               activeTab === 'chests'
                 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-md shadow-amber-500/25'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Gift className="w-4 h-4" />
-            <span>صناديق الجوائز 🎁</span>
+            <Gift className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">الصناديق 🎁</span>
           </button>
 
           <button
@@ -480,14 +511,14 @@ export const ShopModal: React.FC<ShopModalProps> = ({
               soundManager.playClick();
               setActiveTab('categories');
             }}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-black font-['Cairo'] transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black font-['Cairo'] transition-all flex items-center justify-center gap-1 truncate ${
               activeTab === 'categories'
                 ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
-            <span>فئات التحدي ({EXTRA_CATEGORIES.length})</span>
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">الفئات ({EXTRA_CATEGORIES.length})</span>
           </button>
 
           <button
@@ -496,14 +527,14 @@ export const ShopModal: React.FC<ShopModalProps> = ({
               soundManager.playClick();
               setActiveTab('gems');
             }}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-black font-['Cairo'] transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-black font-['Cairo'] transition-all flex items-center justify-center gap-1 truncate ${
               activeTab === 'gems'
                 ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <CreditCard className="w-4 h-4" />
-            <span>باقات الجواهر</span>
+            <CreditCard className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">باقات الجواهر</span>
           </button>
         </div>
 
