@@ -1,8 +1,11 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.aljadwal.game",
-    "sha256_cert_fingerprints": ["EF:0D:CE:E9:F6:73:DD:29:3C:B7:9B:B8:31:E0:66:1E:A6:02:83:68:7F:4A:13:F6:E0:62:B3:09:DA:89:D9:9C"]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.aljadwal.game",
+      "sha256_cert_fingerprints":
+        ["5D:C1:5D:F5:64:10:61:A8:C9:03:D3:C2:A5:7D:90:75:FD:3B:A9:BD:CD:E1:50:FE:B7:E4:68:73:90:C5:09:7F"]
+    }
   }
-}]
+]
