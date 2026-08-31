@@ -153,7 +153,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       soundManager.playSuccess();
       onClose();
     } catch (err: any) {
-      setErrorMsg('تعذر إكمال تسجيل الدخول بحساب Google. يمكنك استخدام بريدك وكلمة المرور أو الدخول كضيف.');
+      setErrorMsg(err?.message || 'تعذر إكمال تسجيل الدخول بحساب Google. يمكنك استخدام بريدك وكلمة المرور أو الدخول كضيف.');
     } finally {
       setIsProcessing(false);
     }

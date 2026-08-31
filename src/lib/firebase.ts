@@ -19,6 +19,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signInAnonymously, 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -64,8 +66,14 @@ export function mapFirebaseAuthError(error: any): string {
       return 'تعذر الاتصال بالشبكة. يرجى التحقق من اتصال الإنترنت.';
     case 'auth/popup-closed-by-user':
       return 'تم إغلاق نافذة تسجيل الدخول قبل إكمال العملية.';
+    case 'auth/popup-blocked':
+      return 'قام المتصفح أو التطبيق بحظر نافذة تسجيل الدخول المنبثقة. يمكنك تسجيل الدخول ببريدك الإلكتروني وكلمة المرور.';
+    case 'auth/unauthorized-domain':
+      return 'النطاق (Domain) غير مصرّح به في Firebase Console. يرجى إضافة نطاق التطبيق إلى Authorized Domains في إعدادات Firebase Authentication.';
     case 'auth/operation-not-allowed':
-      return 'تسجيل الدخول بالبريد الإلكتروني غير مفعل في إعدادات Firebase Auth.';
+      return 'طريقة تسجيل الدخول هذه غير مفعّلة في إعدادات Firebase Authentication Console.';
+    case 'auth/cancelled-popup-request':
+      return 'تم إلغاء نافذة تسجيل الدخول السابقة.';
     default:
       return error?.message || 'حدث خطأ أثناء المصادقة، يرجى المحاولة مرة أخرى.';
   }
@@ -82,8 +90,31 @@ export async function loginWithGoogle(): Promise<User> {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
-    console.error('Google Sign-In Error:', error);
-    throw error;
+    console.error('Google Sign-In Popup Error:', error);
+    // If popup was blocked or unsupported on Android WebView/TWA, try redirect
+    if (
+      error?.code === 'auth/popup-blocked' ||
+      error?.code === 'auth/operation-not-supported-in-this-environment'
+    ) {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        return new Promise(() => {}); // Execution will reload on redirect
+      } catch (redirectErr: any) {
+        console.error('Google Sign-In Redirect Error:', redirectErr);
+        throw new Error(mapFirebaseAuthError(redirectErr));
+      }
+    }
+    throw new Error(mapFirebaseAuthError(error));
+  }
+}
+
+export async function checkRedirectAuthResult(): Promise<User | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    return result ? result.user : null;
+  } catch (error: any) {
+    console.error('Error getting redirect result:', error);
+    return null;
   }
 }
 
