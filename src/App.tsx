@@ -77,6 +77,7 @@ import { AchievementsModal } from './components/AchievementsModal';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { bootstrapAdminStatusIfNeeded } from './lib/adminAuth';
 
 // Helper to create or restore a fast offline guest profile
@@ -230,12 +231,20 @@ export default function App() {
 
   // Check URL params for room code invite (?room=XXXX)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const roomParam = params.get('room');
     if (roomParam && userProfile && !currentMatch) {
-      handleJoinFriendRoom(roomParam);
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+        // ignore
+      }
+      handleJoinFriendRoom(roomParam).catch((err) => {
+        console.warn('Failed joining room from URL:', err);
+      });
     }
-  }, [userProfile]);
+  }, [userProfile?.uid]);
 
   // 3. Matchmaker: Quick Match (Realtime Firestore Queue with Fast Bot Fallback)
   const handleStartQuickMatch = async () => {
@@ -1450,9 +1459,10 @@ export default function App() {
 
     const currentAchievements = { ...(userProfile.achievements || {}) };
     currentAchievements[achievementId] = {
-      completed: true,
+      progress: 100,
+      unlocked: true,
       claimed: true,
-      claimedAt: Date.now(),
+      unlockedAt: currentAchievements[achievementId]?.unlockedAt || Date.now(),
     };
 
     const newStars = userProfile.stars + rewardStars;
@@ -1564,114 +1574,136 @@ export default function App() {
   }
 
   // Active game view conditions
-  const isMatchActive = currentMatch && currentMatch.status !== 'cancelled';
+  const isMatchActive = Boolean(
+    currentMatch &&
+    ['playing', 'choosing_letter', 'round_review', 'match_end'].includes(currentMatch.status)
+  );
   const latestRound = currentMatch?.roundsHistory?.[currentMatch.roundsHistory.length - 1];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-slate-950">
-      
-      {/* Top Navigation */}
-      <Navbar
-        userProfile={userProfile}
-        onOpenShop={handleOpenShop}
-        onOpenRewardedAd={() => setShowRewardedAd(true)}
-        onOpenAuth={() => setShowAuthModal(true)}
-        onLogout={handleLogout}
-        onOpenLeaderboard={() => setShowLeaderboard(true)}
-        onOpenDailyChallenge={() => setShowDailyChallenge(true)}
-        onOpenTasks={() => setShowTasksModal(true)}
-        unclaimedTasksCount={tasksState ? countUnclaimedTasks(tasksState) : 0}
-        onOpenSidebar={() => setShowSidebar(true)}
-        onOpenAdmin={() => setShowAdminPanel(true)}
-      />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+        
+        {/* Top Navigation */}
+        <Navbar
+          userProfile={userProfile}
+          onOpenShop={handleOpenShop}
+          onOpenRewardedAd={() => setShowRewardedAd(true)}
+          onOpenAuth={() => setShowAuthModal(true)}
+          onLogout={handleLogout}
+          onOpenLeaderboard={() => setShowLeaderboard(true)}
+          onOpenDailyChallenge={() => setShowDailyChallenge(true)}
+          onOpenTasks={() => setShowTasksModal(true)}
+          unclaimedTasksCount={tasksState ? countUnclaimedTasks(tasksState) : 0}
+          onOpenSidebar={() => setShowSidebar(true)}
+          onOpenAdmin={() => setShowAdminPanel(true)}
+        />
 
-      {/* Main Content Area */}
-      <main className="flex-1 pb-12">
-        {isMatchActive && currentMatch ? (
-          /* ACTIVE MATCH VIEW */
-          <div className="pt-4">
-            
-            {/* Active Round Play Screen */}
-            {currentMatch.status === 'playing' && (
-              <GameView
-                match={currentMatch}
-                currentUser={userProfile!}
-                onUpdateAnswers={handleUpdateAnswers}
-                onTriggerStop={handleTriggerStop}
-                onTimeExpired={handleTimeExpired}
-                onSurrender={handleSurrender}
-                onGoHome={() => setCurrentMatch(null)}
-                onUseHintItem={handleUseHintItem}
-                onSendChat={handleSendQuickChat}
-              />
-            )}
+        {/* Main Content Area */}
+        <main className="flex-1 pb-12">
+          {isMatchActive && currentMatch ? (
+            /* ACTIVE MATCH VIEW */
+            <div className="pt-4">
+              
+              {/* Active Round Play Screen */}
+              {currentMatch.status === 'playing' && (
+                <GameView
+                  match={currentMatch}
+                  currentUser={userProfile!}
+                  onUpdateAnswers={handleUpdateAnswers}
+                  onTriggerStop={handleTriggerStop}
+                  onTimeExpired={handleTimeExpired}
+                  onSurrender={handleSurrender}
+                  onGoHome={() => setCurrentMatch(null)}
+                  onUseHintItem={handleUseHintItem}
+                  onSendChat={handleSendQuickChat}
+                />
+              )}
 
-            {/* Choosing Letter Modal */}
-            {currentMatch.status === 'choosing_letter' && (
-              <LetterPickerModal
-                roundNumber={currentMatch.currentRound}
-                isMyTurn={currentMatch.letterPickerId === currentUser?.uid}
-                pickerName={currentMatch.playerDetails[currentMatch.letterPickerId]?.displayName || 'اللاعب'}
-                onLetterSelected={handleLetterSelected}
-                onGoHome={() => setCurrentMatch(null)}
-              />
-            )}
+              {/* Choosing Letter Modal */}
+              {currentMatch.status === 'choosing_letter' && (
+                <LetterPickerModal
+                  roundNumber={currentMatch.currentRound}
+                  isMyTurn={currentMatch.letterPickerId === currentUser?.uid}
+                  pickerName={currentMatch.playerDetails[currentMatch.letterPickerId]?.displayName || 'اللاعب'}
+                  onLetterSelected={handleLetterSelected}
+                  onGoHome={() => setCurrentMatch(null)}
+                />
+              )}
 
-            {/* Round Review & Objection Window */}
-            {currentMatch.status === 'round_review' && latestRound && (
-              <RoundReviewModal
-                match={currentMatch}
-                currentUser={userProfile!}
-                latestRound={latestRound}
-                onNextRoundOrFinish={handleNextRoundOrFinish}
-                onRaiseDispute={handleRaiseDispute}
-                onWithdrawWord={handleWithdrawWord}
-                onJustifyWord={handleJustifyWord}
-                onGoHome={() => setCurrentMatch(null)}
-                onSendChat={handleSendQuickChat}
-              />
-            )}
+              {/* Round Review & Objection Window */}
+              {currentMatch.status === 'round_review' && latestRound && (
+                <RoundReviewModal
+                  match={currentMatch}
+                  currentUser={userProfile!}
+                  latestRound={latestRound}
+                  onNextRoundOrFinish={handleNextRoundOrFinish}
+                  onRaiseDispute={handleRaiseDispute}
+                  onWithdrawWord={handleWithdrawWord}
+                  onJustifyWord={handleJustifyWord}
+                  onGoHome={() => setCurrentMatch(null)}
+                  onSendChat={handleSendQuickChat}
+                />
+              )}
 
-            {/* Match Ended Final Ceremony */}
-            {currentMatch.status === 'match_end' && (
-              <MatchResultModal
-                match={currentMatch}
-                currentUser={userProfile!}
-                onPlayAgain={() => {
-                  setCurrentMatch(null);
-                  handleStartQuickMatch();
-                }}
-                onGoHome={() => setCurrentMatch(null)}
-                onSendChat={handleSendQuickChat}
-              />
-            )}
+              {/* Fallback during round review evaluation transition */}
+              {currentMatch.status === 'round_review' && !latestRound && (
+                <div className="text-center py-20 space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30 animate-spin">
+                    جـ
+                  </div>
+                  <p className="text-sm font-bold text-slate-300 font-['Cairo']">
+                    جاري إعداد تقرير نتائج الجولة وتدقيق الإجابات...
+                  </p>
+                  <button
+                    onClick={() => setCurrentMatch(null)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold font-['Cairo'] transition-colors"
+                  >
+                    العودة للرئيسية
+                  </button>
+                </div>
+              )}
 
-          </div>
-        ) : (
-          /* LOBBY / HOME DASHBOARD */
-          <LobbyView
-            userProfile={userProfile}
-            selectedCategoryIds={selectedCategoryIds}
-            onToggleCategory={handleToggleCategory}
-            onStartQuickMatch={handleStartQuickMatch}
-            onOpenFriendChallenge={() => setShowFriendModal(true)}
-            onStartBotMatch={handleStartBotTraining}
-            onOpenRewardedAd={() => setShowRewardedAd(true)}
-            onOpenShop={handleOpenShop}
-            onOpenLeaderboard={() => setShowLeaderboard(true)}
-            onOpenDailyChallenge={() => setShowDailyChallenge(true)}
-            onOpenTasks={() => setShowTasksModal(true)}
-            onOpenLuckySpin={() => setShowLuckySpin(true)}
-            onOpenAchievements={() => setShowAchievements(true)}
-            onOpenAdmin={() => setShowAdminPanel(true)}
-            onOpenAuth={() => setShowAuthModal(true)}
-            tasksState={tasksState || undefined}
-            recentMatches={recentMatches}
-            isSearchingMatch={isSearchingMatch}
-            onCancelMatchmaking={handleCancelMatchmaking}
-          />
-        )}
-      </main>
+              {/* Match Ended Final Ceremony */}
+              {currentMatch.status === 'match_end' && (
+                <MatchResultModal
+                  match={currentMatch}
+                  currentUser={userProfile!}
+                  onPlayAgain={() => {
+                    setCurrentMatch(null);
+                    handleStartQuickMatch();
+                  }}
+                  onGoHome={() => setCurrentMatch(null)}
+                  onSendChat={handleSendQuickChat}
+                />
+              )}
+
+            </div>
+          ) : (
+            /* LOBBY / HOME DASHBOARD */
+            <LobbyView
+              userProfile={userProfile}
+              selectedCategoryIds={selectedCategoryIds}
+              onToggleCategory={handleToggleCategory}
+              onStartQuickMatch={handleStartQuickMatch}
+              onOpenFriendChallenge={() => setShowFriendModal(true)}
+              onStartBotMatch={handleStartBotTraining}
+              onOpenRewardedAd={() => setShowRewardedAd(true)}
+              onOpenShop={handleOpenShop}
+              onOpenLeaderboard={() => setShowLeaderboard(true)}
+              onOpenDailyChallenge={() => setShowDailyChallenge(true)}
+              onOpenTasks={() => setShowTasksModal(true)}
+              onOpenLuckySpin={() => setShowLuckySpin(true)}
+              onOpenAchievements={() => setShowAchievements(true)}
+              onOpenAdmin={() => setShowAdminPanel(true)}
+              onOpenAuth={() => setShowAuthModal(true)}
+              tasksState={tasksState || undefined}
+              recentMatches={recentMatches}
+              isSearchingMatch={isSearchingMatch}
+              onCancelMatchmaking={handleCancelMatchmaking}
+            />
+          )}
+        </main>
 
       {/* Sidebar Drawer */}
       <Sidebar
@@ -1732,7 +1764,7 @@ export default function App() {
           isOpen={showDeleteAccount}
           onClose={() => setShowDeleteAccount(false)}
           onConfirmDelete={handleDeleteAccountConfirmed}
-          userDisplayName={userProfile.displayName}
+          userName={userProfile.displayName}
         />
       )}
 
@@ -1764,12 +1796,12 @@ export default function App() {
         <TasksModal
           currentUser={userProfile}
           tasksState={tasksState || {
-            userId: userProfile.uid,
-            dailyDate: new Date().toISOString().split('T')[0],
-            weeklyYearWeek: '2026-W36',
+            uid: userProfile.uid,
+            dailyDateKey: new Date().toISOString().split('T')[0],
+            weeklyDateKey: '2026-W36',
             tasks: {},
             weeklyBonusClaimed: false,
-            lastUpdated: Date.now(),
+            updatedAt: Date.now(),
           }}
           onUpdateTasksState={(newState) => {
             setTasksState(newState);
@@ -1801,7 +1833,7 @@ export default function App() {
 
       {/* Toast Notification for Task Completion */}
       <TaskNotificationToast
-        task={toastCompletedTask}
+        completedTask={toastCompletedTask}
         onClose={() => setToastCompletedTask(null)}
         onOpenTasks={() => {
           setToastCompletedTask(null);
@@ -1896,6 +1928,7 @@ export default function App() {
         />
       )}
 
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

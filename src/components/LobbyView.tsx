@@ -17,7 +17,8 @@ import {
   ShoppingBag,
   Calendar,
   Sparkles,
-  Gift
+  Gift,
+  CreditCard
 } from 'lucide-react';
 import { UserProfile, MatchHistoryItem, UserTasksState } from '../types';
 import { ALL_CATEGORIES, STANDARD_CATEGORIES } from '../data/categories';
@@ -27,6 +28,7 @@ import { DAILY_TASKS, WEEKLY_TASKS, countUnclaimedTasks } from '../lib/tasks';
 import { checkSpinEligibility } from '../lib/luckySpin';
 import { checkIsAdmin, PRIMARY_ADMIN_EMAIL } from '../lib/adminAuth';
 import { Dices, Crown } from 'lucide-react';
+import { GEM_PACKS } from './ShopModal';
 
 interface LobbyViewProps {
   userProfile: UserProfile | null;
@@ -300,6 +302,95 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Featured Gem Store & Google Play Recharge Banner */}
+      <div 
+        id="lobby-gem-store-section"
+        className="bg-gradient-to-r from-cyan-950/70 via-slate-900 to-blue-950/60 border-2 border-cyan-500/40 rounded-3xl p-4 sm:p-5 shadow-xl relative overflow-hidden space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-cyan-500/20 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-cyan-500/30 shrink-0">
+              <span className="text-2xl">💎</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] bg-cyan-500/20 text-cyan-300 font-bold px-2 py-0.5 rounded-full border border-cyan-500/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-cyan-400" />
+                  مدفوعات Google Play الآمنة
+                </span>
+                <span className="text-xs text-slate-300 font-medium">
+                  رصيدك الحالي: <strong className="text-cyan-300 font-black font-['Cairo']">{userProfile?.gems ?? 0} 💎</strong>
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-extrabold text-white font-['Cairo'] mt-0.5">
+                متجر الجواهر وباقات الشحن الفوري 💎
+              </h3>
+            </div>
+          </div>
+
+          <button
+            id="lobby-open-full-gem-shop-btn"
+            onClick={() => {
+              soundManager.playClick();
+              onOpenShop('gems');
+            }}
+            className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-black text-xs font-['Cairo'] rounded-xl shadow-md shadow-cyan-500/20 transition-all flex items-center justify-center gap-1.5 shrink-0 hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span>عرض كافة الباقات 💎</span>
+          </button>
+        </div>
+
+        {/* 4 Quick Gem Packs Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+          {GEM_PACKS.map((pack) => {
+            const isPopular = pack.popular;
+            return (
+              <div
+                key={pack.id}
+                id={`lobby-gem-pack-${pack.id}`}
+                onClick={() => {
+                  soundManager.playClick();
+                  onOpenShop('gems');
+                }}
+                className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98] ${
+                  isPopular 
+                    ? 'bg-gradient-to-b from-cyan-950/80 to-slate-900 border-cyan-400 shadow-lg shadow-cyan-500/10' 
+                    : 'bg-slate-800/60 border-slate-700/70 hover:border-cyan-500/50'
+                }`}
+              >
+                {isPopular && (
+                  <span className="absolute top-0 right-0 bg-gradient-to-l from-amber-400 to-amber-500 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-bl-xl shadow-sm">
+                    الأكثر طلباً ⭐
+                  </span>
+                )}
+
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="text-xl sm:text-2xl group-hover:scale-110 transition-transform">💎</span>
+                    <span className="text-base sm:text-lg font-black text-white font-['Cairo']">
+                      {pack.gems}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 line-clamp-1">
+                    {pack.gems === 50 ? 'تذكرة 10 مباريات' : pack.gems === 150 ? 'فتح 3 فئات جديدة' : pack.gems === 400 ? 'باقة الأبطال الذهبية' : 'باقة الأساطير 👑'}
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center justify-between">
+                  <span className="text-xs font-black text-cyan-300 font-['Cairo']">
+                    {pack.priceFormatted}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">
+                    ${pack.priceUsd}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Quick Power & Rewards Shortcuts: Chests, Lucky Spin & Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

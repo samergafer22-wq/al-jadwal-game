@@ -12,7 +12,7 @@ import {
   Sparkles,
   Home
 } from 'lucide-react';
-import { RoundResult, UserProfile, MatchData } from '../types';
+import { RoundResult, UserProfile, MatchData, PlayerAnswerBreakdown } from '../types';
 import { ALL_CATEGORIES } from '../data/categories';
 import { soundManager } from '../lib/audio';
 import { fireRoundWinConfetti } from '../lib/celebration';
@@ -248,17 +248,21 @@ export const RoundReviewModal: React.FC<RoundReviewModalProps> = ({
         {/* Comparison Table by Category */}
         <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
           {activeCategories.map((cat) => {
-            const p1Ans = myScores.breakdown?.[cat.id] || {
+            const p1Ans: PlayerAnswerBreakdown = myScores.breakdown?.[cat.id] || {
               word: '',
+              normalizedWord: '',
               isValid: false,
               isDuplicate: false,
               points: 0,
+              reason: '',
             };
-            const p2Ans = opponentScores.breakdown?.[cat.id] || {
+            const p2Ans: PlayerAnswerBreakdown = opponentScores.breakdown?.[cat.id] || {
               word: '',
+              normalizedWord: '',
               isValid: false,
               isDuplicate: false,
               points: 0,
+              reason: '',
             };
 
             const canObjectToOpponent =

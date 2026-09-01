@@ -355,7 +355,9 @@ export const GameView: React.FC<GameViewProps> = ({
                         {validation.isValid ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                         ) : (
-                          <AlertCircle className="w-4 h-4 text-rose-400" title={validation.reason} />
+                          <span title={validation.reason}>
+                            <AlertCircle className="w-4 h-4 text-rose-400" />
+                          </span>
                         )}
                       </div>
                     )}
