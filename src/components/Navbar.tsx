@@ -186,21 +186,24 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </div>
 
-          {/* Gems (Purchased Currency) */}
-          <div 
+          {/* Gems (Purchased Currency) with prominent Recharge button */}
+          <button 
             id="gems-wallet-badge"
-            className="flex items-center gap-1 bg-slate-800/90 hover:bg-slate-800 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border border-cyan-500/30 transition-all cursor-pointer group"
             onClick={() => {
               soundManager.playClick();
               onOpenShop('gems');
             }}
-            title="الجواهر: عملة مدفوعة لفتح فئات إضافية ومظاهر"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-cyan-950/70 via-slate-800 to-slate-800 hover:from-cyan-900/90 hover:to-slate-700 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl border border-cyan-500/40 hover:border-cyan-400 transition-all cursor-pointer group shadow-sm"
+            title="متجر الجواهر: اضغط لشحن الرصيد وشراء الباقات 💎"
           >
-            <span className="text-sm sm:text-base">💎</span>
-            <span className="text-xs sm:text-sm font-black text-cyan-400 font-['Cairo']">
+            <span className="text-sm sm:text-base group-hover:scale-110 transition-transform">💎</span>
+            <span className="text-xs sm:text-sm font-black text-cyan-300 font-['Cairo']">
               {userProfile?.gems ?? 0}
             </span>
-          </div>
+            <span className="w-4 h-4 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-[11px] font-black flex items-center justify-center group-hover:bg-cyan-400 group-hover:text-slate-950 transition-colors">
+              +
+            </span>
+          </button>
 
           {/* Admin Dashboard Button (Only for Admins) */}
           {userProfile && checkIsAdmin(userProfile) && onOpenAdmin && (

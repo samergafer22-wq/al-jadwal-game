@@ -203,14 +203,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Currency & Stat Pills */}
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="bg-slate-900 px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between">
+                <div 
+                  className="bg-slate-900 px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between"
+                  title="نجوم التحدي المجانية"
+                >
                   <span className="text-[11px] text-amber-300 font-bold font-['Cairo']">⭐ النجوم</span>
                   <span className="text-xs font-black text-white font-['Cairo']">{userProfile.stars}</span>
                 </div>
-                <div className="bg-slate-900 px-2.5 py-1.5 rounded-xl border border-cyan-500/30 flex items-center justify-between">
-                  <span className="text-[11px] text-cyan-300 font-bold font-['Cairo']">💎 الجواهر</span>
+                <button 
+                  onClick={() => {
+                    soundManager.playClick();
+                    onClose();
+                    onOpenShop('gems');
+                  }}
+                  className="bg-slate-900 hover:bg-slate-800 px-2.5 py-1.5 rounded-xl border border-cyan-500/40 hover:border-cyan-400 flex items-center justify-between transition-all group"
+                  title="اضغط لشحن باقات الجواهر 💎"
+                >
+                  <span className="text-[11px] text-cyan-300 font-bold font-['Cairo'] flex items-center gap-1">
+                    <span>💎 الجواهر</span>
+                    <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1 rounded font-bold">+</span>
+                  </span>
                   <span className="text-xs font-black text-white font-['Cairo']">{userProfile.gems}</span>
-                </div>
+                </button>
               </div>
             </div>
           )}
