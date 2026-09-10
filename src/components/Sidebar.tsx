@@ -43,6 +43,7 @@ interface SidebarProps {
   unclaimedTasksCount?: number;
   onOpenLuckySpin?: () => void;
   onOpenAchievements?: () => void;
+  onOpenLexicon?: () => void;
   onOpenShop: (tab?: 'chests' | 'avatars' | 'categories' | 'gems') => void;
   onOpenFriendChallenge: () => void;
   onOpenRewardedAd: () => void;
@@ -65,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   unclaimedTasksCount = 0,
   onOpenLuckySpin,
   onOpenAchievements,
+  onOpenLexicon,
   onOpenShop,
   onOpenFriendChallenge,
   onOpenRewardedAd,
@@ -430,6 +432,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <ChevronLeft className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-transform group-hover:-translate-x-0.5" />
             </button>
+
+            {/* Smart Lexicon & Self-Learning Button */}
+            {onOpenLexicon && (
+              <button
+                id="sidebar-nav-lexicon"
+                onClick={() => {
+                  soundManager.playClick();
+                  onClose();
+                  onOpenLexicon();
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-850 to-teal-950/30 hover:from-emerald-900/50 hover:to-teal-900/40 border border-emerald-500/40 text-emerald-300 transition-all group shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div className="text-right">
+                    <span className="font-black text-sm font-['Cairo'] text-white group-hover:text-emerald-200 block">
+                      المعجم الذكي والتعلّم الذاتي
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-bold block">
+                      +18,000 كلمة | يتعلم من اللاعبين 🧠
+                    </span>
+                  </div>
+                </div>
+                <ChevronLeft className="w-4 h-4 text-emerald-400 group-hover:-translate-x-0.5 transition-transform" />
+              </button>
+            )}
 
             {/* Shop */}
             <button

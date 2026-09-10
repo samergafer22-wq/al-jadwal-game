@@ -85,6 +85,7 @@ export const DailyChallengeModal: React.FC<DailyChallengeModalProps> = ({
   // Active inputs focus tracking
   const activeInputRef = useRef<HTMLInputElement | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [hintToast, setHintToast] = useState<string | null>(null);
 
   const currentLetterChallenge: WeeklyLetterChallenge = tournamentConfig.letters[currentLetterIndex] || tournamentConfig.letters[0];
 
@@ -161,7 +162,10 @@ export const DailyChallengeModal: React.FC<DailyChallengeModalProps> = ({
   // Fill in Smart Hint
   const handleUseHint = (categoryId: string) => {
     if ((currentUser?.hints ?? 0) <= 0) {
-      alert('ليس لديك تلميحات كافية حالياً!');
+      soundManager.playError();
+      haptics.warning();
+      setHintToast('ليس لديك تلميحات كافية حالياً! يمكنك الفوز بها من الصناديق 🎁');
+      setTimeout(() => setHintToast(null), 3500);
       return;
     }
     const hintRes = getCategoryHint(currentLetterChallenge.letter, categoryId);
@@ -482,6 +486,12 @@ export const DailyChallengeModal: React.FC<DailyChallengeModalProps> = ({
                 {currentLetterChallenge.letter}
               </div>
             </div>
+
+            {hintToast && (
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs font-bold text-center animate-in fade-in duration-200 font-['Cairo']">
+                {hintToast}
+              </div>
+            )}
 
             {/* Inputs for Categories */}
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">

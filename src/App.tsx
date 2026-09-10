@@ -79,20 +79,13 @@ import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { bootstrapAdminStatusIfNeeded } from './lib/adminAuth';
+import { initLearnedLexicon, autoLearnMatchAnswers, learnWord } from './lib/learnedLexicon';
+import { LearnedLexiconModal } from './components/LearnedLexiconModal';
+import { AlertCircle, X, CheckCircle } from 'lucide-react';
 
 // Helper to create or restore a fast offline guest profile
 const getInitialGuestProfile = (): UserProfile => {
-  if (typeof window !== 'undefined') {
-    try {
-      const saved = localStorage.getItem('aljadwal_guest_profile');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-  return {
+  const fallbackProfile: UserProfile = {
     uid: 'guest_' + Math.random().toString(36).substring(2, 9),
     displayName: 'لاعب ضيف',
     stars: 100,
@@ -107,6 +100,31 @@ const getInitialGuestProfile = (): UserProfile => {
     createdAt: Date.now(),
     lastSeen: Date.now(),
   };
+
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('aljadwal_guest_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...fallbackProfile,
+            ...parsed,
+            stars: typeof parsed.stars === 'number' ? parsed.stars : fallbackProfile.stars,
+            gems: typeof parsed.gems === 'number' ? parsed.gems : fallbackProfile.gems,
+            hints: typeof parsed.hints === 'number' ? parsed.hints : fallbackProfile.hints,
+            unlockedCategories: Array.isArray(parsed.unlockedCategories) && parsed.unlockedCategories.length > 0 
+              ? parsed.unlockedCategories 
+              : fallbackProfile.unlockedCategories,
+            stats: parsed.stats || fallbackProfile.stats,
+          };
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  return fallbackProfile;
 };
 
 export default function App() {
@@ -144,6 +162,7 @@ export default function App() {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showLexiconModal, setShowLexiconModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
 
@@ -151,8 +170,28 @@ export default function App() {
   const [tasksState, setTasksState] = useState<UserTasksState | null>(null);
   const [toastCompletedTask, setToastCompletedTask] = useState<TaskDefinition | null>(null);
 
-  // 1. Initialize Auth & Profile
+  // In-App Non-blocking Notifications Toast
+  const [inAppToast, setInAppToast] = useState<{ message: string; type?: 'error' | 'info' | 'success' } | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showAppToast = (message: string, type: 'error' | 'info' | 'success' = 'info') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setInAppToast({ message, type });
+    if (type === 'error') {
+      soundManager.playError();
+      haptics.warning();
+    } else {
+      soundManager.playClick();
+      haptics.tap();
+    }
+    toastTimeoutRef.current = setTimeout(() => {
+      setInAppToast(null);
+    }, 4500);
+  };
+
+  // 1. Initialize Auth & Profile & Learned Lexicon
   useEffect(() => {
+    initLearnedLexicon();
     const unsubscribe = subscribeToAuth(async (user) => {
       if (user) {
         setCurrentUser(user);
@@ -250,12 +289,12 @@ export default function App() {
   const handleStartQuickMatch = async () => {
     if (!userProfile || !currentUser) return;
     if ((userProfile.gems || 0) < 5) {
-      alert('عفواً، يتطلب دخول التحدي السريع تذكرة مشاركة بـ 5 جواهر 💎. يمكنك الحصول على باقات الجواهر من المتجر!');
+      showAppToast('عفواً، يتطلب دخول التحدي السريع تذكرة مشاركة بـ 5 جواهر 💎. يمكنك الحصول على باقات الجواهر من المتجر!', 'error');
       handleOpenShop('gems');
       return;
     }
     if ((userProfile.stars || 0) < 20) {
-      alert('عفواً، رصيدك من نجوم التحدي أقل من 20 نجمة ⭐. يمكنك مشاهدة إعلان مكافأة مجاني للحصول على +20 نجمة!');
+      showAppToast('عفواً، رصيدك من نجوم التحدي أقل من 20 نجمة ⭐. يمكنك مشاهدة إعلان مكافأة مجاني للحصول على +20 نجمة!', 'error');
       return;
     }
 
@@ -752,6 +791,14 @@ export default function App() {
     const myRoundPoints = roundEval.scores[currentUser.uid]?.totalPoints || 0;
     const opponentRoundPoints = roundEval.scores[opponentId]?.totalPoints || 0;
 
+    // Auto-learn valid answers from player and opponent into the smart dynamic lexicon!
+    try {
+      autoLearnMatchAnswers(currentMatch.currentLetter, myAnswers, userProfile?.displayName || 'اللاعب');
+      autoLearnMatchAnswers(currentMatch.currentLetter, opponentAnswers, currentMatch.isBotMatch ? 'الروبوت الذكي' : 'الخصم');
+    } catch (err) {
+      console.warn('Auto-learning non-blocking notice:', err);
+    }
+
     // Track points task
     if (myRoundPoints > 0) {
       trackUserTaskAction('accumulate_points', myRoundPoints);
@@ -1067,6 +1114,20 @@ export default function App() {
 
   const handleJustifyWord = async (categoryId: string, justification: string) => {
     if (!currentMatch || !currentUser) return;
+    
+    // Auto-learn justified word into active lexicon
+    const disputeWord = currentMatch.activeDisputes?.[categoryId]?.word;
+    if (disputeWord) {
+      learnWord({
+        word: disputeWord,
+        letter: currentMatch.currentLetter,
+        categoryId,
+        addedBy: userProfile?.displayName || 'لاعب',
+        source: 'dispute_justified',
+        notes: justification,
+      }).catch(console.warn);
+    }
+
     if (currentMatch.isBotMatch) {
       setCurrentMatch((prev) => prev ? ({
         ...prev,
@@ -1263,6 +1324,15 @@ export default function App() {
     const currentHints = userProfile.hints || 3;
     const currentCategories = userProfile.unlockedCategories || [];
 
+    if ((cost.gems || 0) > currentGems) {
+      showAppToast(`رصيد الجواهر غير كافٍ. تحتاج إلى ${cost.gems} 💎`, 'error');
+      return;
+    }
+    if ((cost.stars || 0) > currentStars) {
+      showAppToast(`رصيد النجوم غير كافٍ. تحتاج إلى ${cost.stars} ⭐`, 'error');
+      return;
+    }
+
     const newStars = Math.max(0, currentStars - (cost.stars || 0)) + (reward.stars || 0);
     const newGems = Math.max(0, currentGems - (cost.gems || 0)) + (reward.gems || 0);
     const newHints = currentHints + (reward.hints || 0);
@@ -1314,7 +1384,7 @@ export default function App() {
     if (!currentUser || !userProfile) return;
     const currentGems = userProfile.gems || 0;
     if (currentGems < avatar.priceGems) {
-      alert(`رصيد الجواهر غير كافٍ. تحتاج إلى ${avatar.priceGems} 💎`);
+      showAppToast(`رصيد الجواهر غير كافٍ. تحتاج إلى ${avatar.priceGems} 💎`, 'error');
       return;
     }
 
@@ -1386,7 +1456,7 @@ export default function App() {
   const handleToggleCategory = (catId: string) => {
     if (selectedCategoryIds.includes(catId)) {
       if (selectedCategoryIds.length <= 3) {
-        alert('يجب أن تحتوي اللعبة على 3 فئات على الأقل!');
+        showAppToast('يجب أن تحتوي اللعبة على 3 فئات على الأقل!', 'error');
         return;
       }
       setSelectedCategoryIds(selectedCategoryIds.filter((id) => id !== catId));
@@ -1527,7 +1597,7 @@ export default function App() {
       haptics.warning();
     } catch (err) {
       console.error('Failed to delete account:', err);
-      alert('حدث خطأ أثناء حذف الحساب، يرجى المحاولة مرة أخرى.');
+      showAppToast('حدث خطأ أثناء حذف الحساب، يرجى المحاولة مرة أخرى.', 'error');
     }
   };
 
@@ -1695,6 +1765,7 @@ export default function App() {
               onOpenTasks={() => setShowTasksModal(true)}
               onOpenLuckySpin={() => setShowLuckySpin(true)}
               onOpenAchievements={() => setShowAchievements(true)}
+              onOpenLexicon={() => setShowLexiconModal(true)}
               onOpenAdmin={() => setShowAdminPanel(true)}
               onOpenAuth={() => setShowAuthModal(true)}
               tasksState={tasksState || undefined}
@@ -1716,6 +1787,7 @@ export default function App() {
         unclaimedTasksCount={tasksState ? countUnclaimedTasks(tasksState) : 0}
         onOpenLuckySpin={() => setShowLuckySpin(true)}
         onOpenAchievements={() => setShowAchievements(true)}
+        onOpenLexicon={() => setShowLexiconModal(true)}
         onOpenShop={handleOpenShop}
         onOpenFriendChallenge={() => setShowFriendModal(true)}
         onOpenRewardedAd={() => setShowRewardedAd(true)}
@@ -1926,6 +1998,42 @@ export default function App() {
           onClose={() => setShowAdminPanel(false)}
           currentUserProfile={userProfile}
         />
+      )}
+
+      {/* Smart Lexicon & Dynamic Learning Modal */}
+      {showLexiconModal && (
+        <LearnedLexiconModal
+          isOpen={showLexiconModal}
+          onClose={() => setShowLexiconModal(false)}
+          userDisplayName={userProfile?.displayName || 'لاعب ذكي'}
+          initialLetter={currentMatch?.currentLetter || 'أ'}
+        />
+      )}
+
+      {/* Global In-App Toast Notification Banner */}
+      {inAppToast && (
+        <div 
+          id="in-app-toast-banner"
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-[92%] px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-xl border border-amber-500/40 bg-slate-900/95 text-white flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300"
+        >
+          <div className={`p-2 rounded-xl shrink-0 ${inAppToast.type === 'error' ? 'bg-rose-500/20 text-rose-400' : inAppToast.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+            {inAppToast.type === 'success' ? (
+              <CheckCircle className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+          </div>
+          <div className="text-xs sm:text-sm font-bold flex-1 font-['Cairo'] text-right leading-snug">
+            {inAppToast.message}
+          </div>
+          <button 
+            type="button"
+            onClick={() => setInAppToast(null)} 
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       )}
 
       </div>

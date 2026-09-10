@@ -153,22 +153,35 @@ async function startServer() {
     }
   });
 
+  // Authoritative server-side Gem Packs catalog
+  const AUTHORITATIVE_GEM_PACKS: Record<string, { gems: number; priceUsd: string }> = {
+    'gems_50': { gems: 50, priceUsd: '2.93' },
+    'gems_150': { gems: 150, priceUsd: '7.73' },
+    'gems_400': { gems: 400, priceUsd: '15.47' },
+    'gems_1000': { gems: 1000, priceUsd: '30.40' },
+  };
+
   // Google Play Gems Purchase Simulation (Strict Separation: Real Money -> Gems Only)
   app.post('/api/shop/buy-gems', (req: Request, res: Response) => {
     try {
-      const { packId, gemsAmount, priceUsd } = req.body;
-      if (!packId || !gemsAmount) {
+      const { packId } = req.body;
+      if (!packId || typeof packId !== 'string') {
         return res.status(400).json({ error: 'Invalid pack selection' });
+      }
+
+      const pack = AUTHORITATIVE_GEM_PACKS[packId];
+      if (!pack) {
+        return res.status(400).json({ error: 'حزمة الجواهر غير صالحة أو غير متوفرة' });
       }
 
       // Authoritative Play Billing receipt simulation
       return res.json({
         success: true,
         transactionId: `GPA.${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Date.now()}`,
-        gemsAdded: Number(gemsAmount),
-        price: priceUsd,
+        gemsAdded: pack.gems,
+        price: pack.priceUsd,
         timestamp: Date.now(),
-        message: `تم شراء ${gemsAmount} جوهرة بنجاح عبر Google Play Billing`,
+        message: `تم شراء ${pack.gems} جوهرة بنجاح عبر Google Play Billing`,
       });
     } catch (error: any) {
       return res.status(500).json({ error: 'Billing error' });
@@ -179,16 +192,23 @@ async function startServer() {
   app.post('/api/shop/unlock-category', (req: Request, res: Response) => {
     try {
       const { categoryId, currentGems } = req.body;
-      const category = ALL_CATEGORIES.find((c) => c.id === categoryId);
+      if (!categoryId || typeof categoryId !== 'string') {
+        return res.status(400).json({ error: 'معرف الفئة مطلوب' });
+      }
 
+      const safeGems = typeof currentGems === 'number' && !isNaN(currentGems) && currentGems >= 0 
+        ? Math.floor(currentGems) 
+        : 0;
+
+      const category = ALL_CATEGORIES.find((c) => c.id === categoryId);
       if (!category) {
         return res.status(404).json({ error: 'الفئة غير موجودة' });
       }
 
       const price = category.gemPrice || 50;
-      if (currentGems < price) {
+      if (safeGems < price) {
         return res.status(400).json({
-          error: `رصيد الجواهر غير كافٍ. تحتاج إلى ${price} جوهرة، ورصيدك الحالي ${currentGems}`,
+          error: `رصيد الجواهر غير كافٍ. تحتاج إلى ${price} جوهرة، ورصيدك الحالي ${safeGems}`,
         });
       }
 
@@ -196,7 +216,7 @@ async function startServer() {
         success: true,
         categoryId,
         gemsDeducted: price,
-        remainingGems: currentGems - price,
+        remainingGems: safeGems - price,
         message: `تم فتح فئة (${category.label}) بنجاح!`,
       });
     } catch (error: any) {
@@ -207,33 +227,36 @@ async function startServer() {
   // Bot Auto-Play Generator (Produces realistic Arabic answers and natural typing delays)
   app.post('/api/bot/generate-answers', (req: Request, res: Response) => {
     const { letter, categories, difficulty } = req.body;
-    if (!letter || !categories) {
-      return res.status(400).json({ error: 'Letter and categories required' });
+    if (!letter || !categories || !Array.isArray(categories)) {
+      return res.status(400).json({ error: 'Letter and categories array required' });
     }
 
+    const cleanLetter = String(letter).trim();
     const answers: Record<string, string> = {};
-    const bankForLetter = ARABIC_WORD_BANK[letter] || {};
+    const bankForLetter = ARABIC_WORD_BANK[cleanLetter] || {};
 
     categories.forEach((catId: string) => {
+      if (typeof catId !== 'string') return;
       const words = bankForLetter[catId];
       if (words && words.length > 0) {
         // Chance of leaving empty based on difficulty (90% fill rate for normal)
-        const willFill = Math.random() > 0.1;
-        if (willFill) {
-          const randIdx = Math.floor(Math.random() * words.length);
-          answers[catId] = words[randIdx];
+        const shouldAnswer = difficulty === 'hard' ? Math.random() > 0.05 : Math.random() > 0.15;
+        if (shouldAnswer) {
+          const randWord = words[Math.floor(Math.random() * words.length)];
+          answers[catId] = randWord;
         } else {
           answers[catId] = '';
         }
       } else {
-        // Fallback prefix word
-        answers[catId] = `${letter}ـكلمة`;
+        answers[catId] = '';
       }
     });
 
     return res.json({
       success: true,
+      letter: cleanLetter,
       answers,
+      delayMs: Math.floor(Math.random() * 8000) + 7000,
     });
   });
 
@@ -252,9 +275,29 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`Port ${PORT} is currently in use, retrying in 1s...`);
+      setTimeout(() => {
+        server.close();
+        server.listen(PORT, '0.0.0.0');
+      }, 1000);
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+
+  const cleanup = () => {
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', cleanup);
 }
 
 startServer();

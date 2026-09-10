@@ -18,7 +18,9 @@ import {
   Calendar,
   Sparkles,
   Gift,
-  CreditCard
+  CreditCard,
+  BookOpen,
+  Brain
 } from 'lucide-react';
 import { UserProfile, MatchHistoryItem, UserTasksState } from '../types';
 import { ALL_CATEGORIES, STANDARD_CATEGORIES } from '../data/categories';
@@ -44,6 +46,7 @@ interface LobbyViewProps {
   onOpenTasks?: () => void;
   onOpenLuckySpin?: () => void;
   onOpenAchievements?: () => void;
+  onOpenLexicon?: () => void;
   onOpenAdmin?: () => void;
   onOpenAuth?: () => void;
   tasksState?: UserTasksState;
@@ -66,6 +69,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onOpenTasks,
   onOpenLuckySpin,
   onOpenAchievements,
+  onOpenLexicon,
   onOpenAdmin,
   onOpenAuth,
   tasksState,
@@ -392,8 +396,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         </div>
       </div>
 
-      {/* Quick Power & Rewards Shortcuts: Chests, Lucky Spin & Badges */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Quick Power & Rewards Shortcuts: Chests, Lucky Spin, Lexicon & Badges */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Mystery Reward Chests */}
         <div 
           id="lobby-chests-card"
@@ -467,6 +471,40 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             })()}
             <span className="text-xs font-black text-amber-400 group-hover:translate-x-[-2px] transition-transform">
               تدوير ←
+            </span>
+          </div>
+        )}
+
+        {/* Smart Lexicon & Self-Learning Card */}
+        {onOpenLexicon && (
+          <div 
+            id="lobby-lexicon-card"
+            onClick={() => {
+              soundManager.playClick();
+              onOpenLexicon();
+            }}
+            className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-teal-950/40 border border-emerald-500/40 hover:border-emerald-400 transition-all cursor-pointer flex items-center justify-between group shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-black group-hover:scale-110 transition-transform shadow-md">
+                <BookOpen className="w-5 h-5 text-slate-950" />
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-sm font-black text-white font-['Cairo'] group-hover:text-emerald-300 transition-colors">
+                    المعجم الذكي 📚
+                  </h4>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded-full border border-emerald-500/30">
+                    ذاتي 🧠
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  +18k كلمة ويتعلّم من اللعب
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-black text-emerald-400 group-hover:translate-x-[-2px] transition-transform">
+              المعجم ←
             </span>
           </div>
         )}

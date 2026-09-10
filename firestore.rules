@@ -14,66 +14,98 @@ service cloud.firestore {
       );
     }
 
-    // Admins Collection
+    // Admins Collection - Restricted to verified administrators
     match /admins/{adminId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // User profiles
+    // User profiles - Read is public for leaderboards/matches; write is scoped to profile owner or Admin
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update: if (isAuthenticated() && request.auth.uid == userId) 
+                            || (!isAuthenticated() && userId.matches('^guest_.*'))
+                            || isAdmin();
+      allow delete: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
     }
 
-    // System Configuration
+    // System Configuration - Global settings (read-only for players, write strictly for Admin)
     match /system_config/{configId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
-    // Global Announcements
+    // Global Announcements - Broadcasts (read-only for players, write strictly for Admin)
     match /announcements/{announcementId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
-    // Word Bank Custom Overrides
+    // Word Bank Custom Overrides - Validated contributions or Admin managed
     match /word_bank_overrides/{wordId} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if isAdmin() || (
+        request.resource.data.word is string && 
+        request.resource.data.word.size() <= 60 && 
+        request.resource.data.letter is string && 
+        request.resource.data.letter.size() <= 10
+      );
+      allow delete: if isAdmin();
     }
 
-    // Matches collection
+    // Dynamic Learned Lexicon (Crowd-sourced & auto-learned words)
+    match /learned_lexicon/{wordId} {
+      allow read: if true;
+      allow create, update: if isAdmin() || (
+        request.resource.data.word is string && 
+        request.resource.data.word.size() <= 60 && 
+        request.resource.data.letter is string && 
+        request.resource.data.letter.size() <= 10
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Matches collection - active match data (accessible to game participants)
     match /matches/{matchId} {
       allow read, write: if true;
     }
 
-    // Matchmaking queue
+    // Matchmaking queue - fast open queue
     match /matchmaking/{queueId} {
       allow read, write: if true;
     }
 
     // Daily & Weekly Challenges
     match /daily_challenges/{dateKey} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
 
       match /participants/{userId} {
-        allow read, write: if true;
+        allow read: if true;
+        allow write: if (isAuthenticated() && request.auth.uid == userId)
+                     || (!isAuthenticated() && userId.matches('^guest_.*'))
+                     || isAdmin();
       }
     }
 
     match /weekly_challenges/{weekKey} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
 
       match /participants/{userId} {
-        allow read, write: if true;
+        allow read: if true;
+        allow write: if (isAuthenticated() && request.auth.uid == userId)
+                     || (!isAuthenticated() && userId.matches('^guest_.*'))
+                     || isAdmin();
       }
     }
 
     // Daily & Weekly User Tasks
     match /user_tasks/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if (isAuthenticated() && request.auth.uid == userId)
+                   || (!isAuthenticated() && userId.matches('^guest_.*'))
+                   || isAdmin();
     }
   }
 }
-

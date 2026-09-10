@@ -561,13 +561,17 @@ export async function deleteUserAccountAndData(uid: string): Promise<void> {
     await deleteDoc(userRef);
 
     // Also delete user tasks if exists
-    const tasksRef = doc(db, 'userTasks', uid);
-    await deleteDoc(tasksRef).catch(() => {});
+    await deleteDoc(doc(db, 'user_tasks', uid)).catch(() => {});
+    await deleteDoc(doc(db, 'userTasks', uid)).catch(() => {});
 
     // Clear local storage entries
     localStorage.removeItem('aljadwal_haptics_enabled');
     localStorage.removeItem('aljadwal_audio_muted');
     localStorage.removeItem('aljadwal_recent_matches');
+    localStorage.removeItem('aljadwal_guest_profile');
+    localStorage.removeItem('aljadwal_active_user');
+    localStorage.removeItem('aljadwal_guest_uid');
+    localStorage.removeItem(`aljadwal_user_profile_${uid}`);
 
     // Delete Auth User if authenticated
     const currentUser = auth.currentUser;

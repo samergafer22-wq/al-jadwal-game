@@ -365,6 +365,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
 
   // Open Mystery Chest Logic with Confetti celebration
   const handleOpenChest = async (chest: ChestDef) => {
+    if (isChestOpeningAnim || openingChest) return;
     const costAmount = chest.costAmount;
     if ((userProfile.gems || 0) < costAmount) {
       soundManager.playError();

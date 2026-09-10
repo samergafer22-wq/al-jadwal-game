@@ -15,12 +15,17 @@ export const ADMIN_EMAILS = [
 export function checkIsAdmin(user: UserProfile | { email?: string | null; role?: string; isAdmin?: boolean; uid?: string } | null): boolean {
   if (!user) return false;
   
+  // Synthetic guests cannot be admins
+  if (user.uid && user.uid.startsWith('guest_')) {
+    return false;
+  }
+  
   const email = (user.email || auth.currentUser?.email || '').trim().toLowerCase();
-  if (email === PRIMARY_ADMIN_EMAIL.toLowerCase() || ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+  if (email && (email === PRIMARY_ADMIN_EMAIL.toLowerCase() || ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email))) {
     return true;
   }
 
-  if (user.role === 'admin' || user.isAdmin === true) {
+  if (email && (user.role === 'admin' || user.isAdmin === true)) {
     return true;
   }
 

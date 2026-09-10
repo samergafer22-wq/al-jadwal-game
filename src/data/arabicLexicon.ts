@@ -13,6 +13,8 @@
  * - Capitals & Landmarks (عواصم ومعالم تاريخية)
  */
 
+import { DIVERSE_SUPPLEMENTARY_LEXICON } from './diverseArabicCorpus';
+
 // Normalized helper for dictionary indexing
 export function norm(str: string): string {
   return str
@@ -819,34 +821,74 @@ export const EXPANDED_ARABIC_LEXICON: AlphabetLexicon = {
  */
 const NORMALIZED_WORD_MAP: Map<string, { letter: string; category: string }[]> = new Map();
 const ALL_KNOWN_NORMALIZED_WORDS: Set<string> = new Set();
+let dynamicRegisteredCount = 0;
 
-// Populate the lookup map
+function indexWordEntry(word: string, normLetter: string, catKey: string) {
+  const nWord = norm(word);
+  if (!nWord || nWord.length < 2) return;
+
+  if (!NORMALIZED_WORD_MAP.has(nWord)) {
+    NORMALIZED_WORD_MAP.set(nWord, []);
+  }
+  NORMALIZED_WORD_MAP.get(nWord)!.push({ letter: normLetter, category: catKey });
+  ALL_KNOWN_NORMALIZED_WORDS.add(nWord);
+
+  // Also index without 'ال' (Al-)
+  if (nWord.startsWith('ال') && nWord.length > 3) {
+    const withoutAl = nWord.slice(2);
+    if (!NORMALIZED_WORD_MAP.has(withoutAl)) {
+      NORMALIZED_WORD_MAP.set(withoutAl, []);
+    }
+    NORMALIZED_WORD_MAP.get(withoutAl)!.push({ letter: normLetter, category: catKey });
+    ALL_KNOWN_NORMALIZED_WORDS.add(withoutAl);
+  }
+}
+
+// 1. Populate primary lexicon
 Object.entries(EXPANDED_ARABIC_LEXICON).forEach(([letter, cats]) => {
   const normLetter = norm(letter);
   Object.entries(cats).forEach(([catKey, words]) => {
-    words.forEach((word) => {
-      const nWord = norm(word);
-      if (!NORMALIZED_WORD_MAP.has(nWord)) {
-        NORMALIZED_WORD_MAP.set(nWord, []);
-      }
-      NORMALIZED_WORD_MAP.get(nWord)!.push({ letter: normLetter, category: catKey });
-      ALL_KNOWN_NORMALIZED_WORDS.add(nWord);
+    words.forEach((word) => indexWordEntry(word, normLetter, catKey));
+  });
+});
 
-      // Also index without 'ال' (Al-)
-      if (nWord.startsWith('ال') && nWord.length > 3) {
-        const withoutAl = nWord.slice(2);
-        if (!NORMALIZED_WORD_MAP.has(withoutAl)) {
-          NORMALIZED_WORD_MAP.set(withoutAl, []);
-        }
-        NORMALIZED_WORD_MAP.get(withoutAl)!.push({ letter: normLetter, category: catKey });
-        ALL_KNOWN_NORMALIZED_WORDS.add(withoutAl);
-      }
-    });
+// 2. Populate diverse supplementary corpus
+Object.entries(DIVERSE_SUPPLEMENTARY_LEXICON).forEach(([letter, cats]) => {
+  const normLetter = norm(letter);
+  Object.entries(cats).forEach(([catKey, words]) => {
+    words.forEach((word) => indexWordEntry(word, normLetter, catKey));
   });
 });
 
 /**
+ * Registers a newly learned word into the active in-memory dictionary dynamically.
+ * Immediately makes the word valid in the current session.
+ */
+export function registerDynamicWordInLexicon(word: string, letter: string, categoryId: string): void {
+  if (!word || !letter || !categoryId) return;
+  const normLetter = norm(letter);
+  indexWordEntry(word, normLetter, categoryId);
+  dynamicRegisteredCount++;
+}
+
+/**
+ * Returns statistics about the lexicon
+ */
+export function getLexiconStats(): { totalWords: number; dynamicLearned: number } {
+  return {
+    totalWords: ALL_KNOWN_NORMALIZED_WORDS.size,
+    dynamicLearned: dynamicRegisteredCount,
+  };
+}
+
+/**
  * Checks if a word exists in the dictionary for the specified letter and category.
+ * Gracefully handles:
+ * - Direct match
+ * - With / without 'ال' (Al-)
+ * - Taa Marbouta / Haa (ة / ه)
+ * - Arabic feminine plural (ات) and sound plurals (ون / ين)
+ * - Dual form (ان / ين)
  */
 export function isWordInLexicon(word: string, letter: string, categoryId?: string): boolean {
   if (!word) return false;
@@ -865,7 +907,9 @@ export function isWordInLexicon(word: string, letter: string, categoryId?: strin
         (categoryId === 'country' && (m.category === 'capital' || m.category === 'african_countries' || m.category === 'asian_countries')) ||
         (categoryId === 'african_countries' && m.category === 'country') ||
         (categoryId === 'asian_countries' && m.category === 'country') ||
-        (categoryId === 'capital' && m.category === 'country');
+        (categoryId === 'capital' && m.category === 'country') ||
+        (categoryId === 'foods' && (m.category === 'food' || m.category === 'plant')) ||
+        (categoryId === 'food' && m.category === 'foods');
       return matchLetter && catMatch;
     });
   };
@@ -885,6 +929,35 @@ export function isWordInLexicon(word: string, letter: string, categoryId?: strin
   if (nWord.startsWith('ال') && nWord.length > 3) {
     const withoutAl = nWord.slice(2);
     if (checkMatch(NORMALIZED_WORD_MAP.get(withoutAl))) {
+      return true;
+    }
+  }
+
+  // 4. Check feminine ending variation (e.g. ه / ة)
+  if (nWord.endsWith('ه') && nWord.length > 3) {
+    const root = nWord.slice(0, -1);
+    if (checkMatch(NORMALIZED_WORD_MAP.get(root))) {
+      return true;
+    }
+  } else if (nWord.length > 3) {
+    if (checkMatch(NORMALIZED_WORD_MAP.get(nWord + 'ه'))) {
+      return true;
+    }
+  }
+
+  // 5. Plural 'ات' stripping (e.g. سيارات -> سياره / سيارة, طاولات -> طاوله)
+  if (nWord.endsWith('ات') && nWord.length > 4) {
+    const singularH = nWord.slice(0, -2) + 'ه';
+    const singularBare = nWord.slice(0, -2);
+    if (checkMatch(NORMALIZED_WORD_MAP.get(singularH)) || checkMatch(NORMALIZED_WORD_MAP.get(singularBare))) {
+      return true;
+    }
+  }
+
+  // 6. Dual or plural 'ون' / 'ين' / 'ان' stripping
+  if ((nWord.endsWith('ون') || nWord.endsWith('ين') || nWord.endsWith('ان')) && nWord.length > 4) {
+    const bare = nWord.slice(0, -2);
+    if (checkMatch(NORMALIZED_WORD_MAP.get(bare))) {
       return true;
     }
   }
