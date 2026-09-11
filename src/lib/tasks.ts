@@ -466,7 +466,7 @@ export async function claimTaskReward(
   await saveUserTasks(newState);
 
   // Credit user profile stars in Firestore if authenticated
-  if (currentState.uid && currentState.uid !== 'guest') {
+  if (currentState.uid && currentState.uid !== 'guest' && !currentState.uid.startsWith('guest_')) {
     try {
       const userRef = doc(db, 'users', currentState.uid);
       await updateDoc(userRef, {
@@ -515,7 +515,7 @@ export async function claimAllCompletedTasks(
 
   await saveUserTasks(newState);
 
-  if (currentState.uid && currentState.uid !== 'guest' && totalStars > 0) {
+  if (currentState.uid && currentState.uid !== 'guest' && !currentState.uid.startsWith('guest_') && totalStars > 0) {
     try {
       const userRef = doc(db, 'users', currentState.uid);
       await updateDoc(userRef, {
@@ -557,7 +557,7 @@ export async function claimWeeklyMilestoneBonus(
 
   await saveUserTasks(newState);
 
-  if (currentState.uid && currentState.uid !== 'guest') {
+  if (currentState.uid && currentState.uid !== 'guest' && !currentState.uid.startsWith('guest_')) {
     try {
       const userRef = doc(db, 'users', currentState.uid);
       await updateDoc(userRef, {

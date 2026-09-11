@@ -567,6 +567,7 @@ export async function deleteUserAccountAndData(uid: string): Promise<void> {
     // Clear local storage entries
     localStorage.removeItem('aljadwal_haptics_enabled');
     localStorage.removeItem('aljadwal_audio_muted');
+    localStorage.removeItem('aljadwal_sound_muted');
     localStorage.removeItem('aljadwal_recent_matches');
     localStorage.removeItem('aljadwal_guest_profile');
     localStorage.removeItem('aljadwal_active_user');
