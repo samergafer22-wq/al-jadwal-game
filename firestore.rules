@@ -14,19 +14,34 @@ service cloud.firestore {
       );
     }
 
+    function isUserBanned(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.isBanned == true;
+    }
+
     // Admins Collection - Restricted to verified administrators
     match /admins/{adminId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // User profiles - Read is public for leaderboards/matches; write is scoped to profile owner or Admin
+    // User profiles - Read is public for leaderboards/matches; write is strictly scoped
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if (isAuthenticated() && request.auth.uid == userId) 
-                            || (!isAuthenticated() && userId.matches('^guest_.*'))
-                            || isAdmin();
-      allow delete: if (isAuthenticated() && request.auth.uid == userId) || isAdmin();
+      allow create: if isAdmin() || (
+        ((isAuthenticated() && request.auth.uid == userId) || (!isAuthenticated() && userId.matches('^guest_.*'))) &&
+        (!('role' in request.resource.data) || request.resource.data.role != 'admin') &&
+        (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin != true) &&
+        (!('isBanned' in request.resource.data) || request.resource.data.isBanned != true)
+      );
+      allow update: if isAdmin() || (
+        ((isAuthenticated() && request.auth.uid == userId) || (!isAuthenticated() && userId.matches('^guest_.*'))) &&
+        // Non-admins cannot escalate privileges or unban accounts
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdmin', 'isBanned'])) &&
+        // Banned accounts cannot update their profiles
+        (!('isBanned' in resource.data) || resource.data.isBanned != true)
+      );
+      allow delete: if isAdmin() || ((isAuthenticated() && request.auth.uid == userId) && (!('isBanned' in resource.data) || resource.data.isBanned != true));
     }
 
     // System Configuration - Global settings (read-only for players, write strictly for Admin)
@@ -46,9 +61,11 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isAdmin() || (
         request.resource.data.word is string && 
+        request.resource.data.word.size() > 0 &&
         request.resource.data.word.size() <= 60 && 
         request.resource.data.letter is string && 
-        request.resource.data.letter.size() <= 10
+        request.resource.data.letter.size() <= 10 &&
+        (!isAuthenticated() || !isUserBanned(request.auth.uid))
       );
       allow delete: if isAdmin();
     }
@@ -58,14 +75,16 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isAdmin() || (
         request.resource.data.word is string && 
+        request.resource.data.word.size() > 0 &&
         request.resource.data.word.size() <= 60 && 
         request.resource.data.letter is string && 
-        request.resource.data.letter.size() <= 10
+        request.resource.data.letter.size() <= 10 &&
+        (!isAuthenticated() || !isUserBanned(request.auth.uid))
       );
       allow delete: if isAdmin();
     }
 
-    // Matches collection - active match data (accessible to game participants)
+    // Matches collection - active match data
     match /matches/{matchId} {
       allow read, write: if true;
     }
@@ -82,9 +101,10 @@ service cloud.firestore {
 
       match /participants/{userId} {
         allow read: if true;
-        allow write: if (isAuthenticated() && request.auth.uid == userId)
-                     || (!isAuthenticated() && userId.matches('^guest_.*'))
-                     || isAdmin();
+        allow write: if isAdmin() || (
+          ((isAuthenticated() && request.auth.uid == userId) || (!isAuthenticated() && userId.matches('^guest_.*'))) &&
+          !isUserBanned(userId)
+        );
       }
     }
 
@@ -94,18 +114,20 @@ service cloud.firestore {
 
       match /participants/{userId} {
         allow read: if true;
-        allow write: if (isAuthenticated() && request.auth.uid == userId)
-                     || (!isAuthenticated() && userId.matches('^guest_.*'))
-                     || isAdmin();
+        allow write: if isAdmin() || (
+          ((isAuthenticated() && request.auth.uid == userId) || (!isAuthenticated() && userId.matches('^guest_.*'))) &&
+          !isUserBanned(userId)
+        );
       }
     }
 
     // Daily & Weekly User Tasks
     match /user_tasks/{userId} {
       allow read: if true;
-      allow write: if (isAuthenticated() && request.auth.uid == userId)
-                   || (!isAuthenticated() && userId.matches('^guest_.*'))
-                   || isAdmin();
+      allow write: if isAdmin() || (
+        ((isAuthenticated() && request.auth.uid == userId) || (!isAuthenticated() && userId.matches('^guest_.*'))) &&
+        !isUserBanned(userId)
+      );
     }
   }
 }

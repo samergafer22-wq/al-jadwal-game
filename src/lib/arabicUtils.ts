@@ -12,7 +12,7 @@ import { PlayerAnswerBreakdown, RoundResult } from '../types';
  * - Strips zero-width chars and trims whitespaces
  */
 export function normalizeArabic(text: string): string {
-  if (!text) return '';
+  if (!text || typeof text !== 'string') return '';
   
   let cleaned = text.trim();
   
@@ -44,7 +44,7 @@ export function normalizeArabic(text: string): string {
  * - The definite article 'ال' / 'الـ' (e.g. if letter is 'أ' and word is 'الأردن' or letter is 'ب' and word is 'البحرين' or 'بحرين')
  */
 export function checkStartsWithLetter(word: string, letter: string): boolean {
-  if (!word || !letter) return false;
+  if (!word || !letter || typeof word !== 'string' || typeof letter !== 'string') return false;
   
   const normWord = normalizeArabic(word);
   const normLetter = normalizeArabic(letter);
@@ -85,7 +85,7 @@ const KEYBOARD_MASH_PATTERNS = [
  * Detects invalid random character mashing or spam (e.g. "حنتوحز", "حيم", "حححح")
  */
 export function isArabicGibberish(word: string): boolean {
-  if (!word) return true;
+  if (!word || typeof word !== 'string') return true;
   const trimmed = word.trim();
   const normalized = normalizeArabic(trimmed);
   
@@ -184,7 +184,10 @@ export function validateArabicWord(
   letter: string, 
   categoryId?: string
 ): { isValid: boolean; reason?: string } {
-  const trimmed = word?.trim() || '';
+  if (typeof word !== 'string' || typeof letter !== 'string') {
+    return { isValid: false, reason: 'صيغة الكلمة أو الحرف غير صالحة' };
+  }
+  const trimmed = word.trim();
   if (!trimmed) {
     return { isValid: false, reason: 'خانة فارغة' };
   }
@@ -281,7 +284,12 @@ export function evaluateRoundAnswers(
   isRareLetter: boolean;
   multiplier: number;
 } {
-  const isRareLetter = RARE_LETTERS_SET.has(letter);
+  const safeLetter = typeof letter === 'string' ? letter : '';
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeP1Answers = (typeof player1Answers === 'object' && player1Answers !== null) ? player1Answers : {};
+  const safeP2Answers = (typeof player2Answers === 'object' && player2Answers !== null) ? player2Answers : {};
+
+  const isRareLetter = RARE_LETTERS_SET.has(safeLetter);
   const multiplier = isRareLetter ? 2 : 1;
   
   const p1Breakdown: Record<string, PlayerAnswerBreakdown> = {};
@@ -290,12 +298,13 @@ export function evaluateRoundAnswers(
   let p1Total = 0;
   let p2Total = 0;
   
-  categories.forEach((catId) => {
-    const w1 = player1Answers[catId] || '';
-    const w2 = player2Answers[catId] || '';
+  safeCategories.forEach((catId) => {
+    if (typeof catId !== 'string') return;
+    const w1 = safeP1Answers[catId] || '';
+    const w2 = safeP2Answers[catId] || '';
     
-    const v1 = validateArabicWord(w1, letter, catId);
-    const v2 = validateArabicWord(w2, letter, catId);
+    const v1 = validateArabicWord(w1, safeLetter, catId);
+    const v2 = validateArabicWord(w2, safeLetter, catId);
     
     const norm1 = normalizeArabic(w1);
     const norm2 = normalizeArabic(w2);

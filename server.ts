@@ -70,18 +70,18 @@ async function startServer() {
         stoppedBy
       } = req.body;
 
-      if (!letter || !categories || !player1Uid || !player2Uid) {
-        return res.status(400).json({ error: 'Missing required match parameters' });
+      if (!letter || typeof letter !== 'string' || !categories || !Array.isArray(categories) || !player1Uid || !player2Uid) {
+        return res.status(400).json({ error: 'Missing or invalid required match parameters (letter string, categories array, player1Uid, player2Uid)' });
       }
 
       const result = evaluateRoundAnswers(
         letter,
         categories,
-        player1Uid,
-        player1Answers || {},
-        player2Uid,
-        player2Answers || {},
-        stoppedBy
+        String(player1Uid),
+        (player1Answers && typeof player1Answers === 'object') ? player1Answers : {},
+        String(player2Uid),
+        (player2Answers && typeof player2Answers === 'object') ? player2Answers : {},
+        stoppedBy ? String(stoppedBy) : undefined
       );
 
       return res.json({
@@ -100,24 +100,30 @@ async function startServer() {
 
   // Single Word Validation API
   app.post('/api/word/validate', (req: Request, res: Response) => {
-    const { word, letter, categoryId } = req.body;
-    if (!word || !letter) {
-      return res.status(400).json({ error: 'Word and letter required' });
+    try {
+      const { word, letter, categoryId } = req.body;
+      if (!word || !letter || typeof word !== 'string' || typeof letter !== 'string') {
+        return res.status(400).json({ error: 'Word and letter required as non-empty strings' });
+      }
+
+      const safeCategory = typeof categoryId === 'string' ? categoryId : undefined;
+      const validation = validateArabicWord(word, letter, safeCategory);
+      const normalized = normalizeArabic(word);
+
+      // Also check if exists in word bank for smart validation hints
+      const inBank = !!(safeCategory && ARABIC_WORD_BANK[letter]?.[safeCategory]?.some(w => normalizeArabic(w) === normalized));
+
+      return res.json({
+        word,
+        normalized,
+        isValid: validation.isValid,
+        reason: validation.reason,
+        inDictionary: inBank,
+      });
+    } catch (error: any) {
+      console.error('Word validation error:', error);
+      return res.status(500).json({ error: 'Failed to validate word' });
     }
-
-    const validation = validateArabicWord(word, letter, categoryId);
-    const normalized = normalizeArabic(word);
-
-    // Also check if exists in word bank for smart validation hints
-    const inBank = !!(ARABIC_WORD_BANK[letter]?.[categoryId]?.some(w => normalizeArabic(w) === normalized));
-
-    return res.json({
-      word,
-      normalized,
-      isValid: validation.isValid,
-      reason: validation.reason,
-      inDictionary: inBank,
-    });
   });
 
   // Daily Rewarded Ad Verification & Star Grant (Max 3 / Day)
@@ -126,7 +132,10 @@ async function startServer() {
       const { currentCount, lastRewardDate } = req.body;
       const today = new Date().toISOString().split('T')[0];
 
-      let effectiveCount = currentCount || 0;
+      let effectiveCount = typeof currentCount === 'number' && !isNaN(currentCount) 
+        ? Math.max(0, Math.floor(currentCount)) 
+        : 0;
+
       if (lastRewardDate !== today) {
         effectiveCount = 0;
       }
@@ -146,7 +155,7 @@ async function startServer() {
         starsEarned,
         rewardedAdsToday: newCount,
         lastRewardDate: today,
-        remainingToday: 3 - newCount,
+        remainingToday: Math.max(0, 3 - newCount),
       });
     } catch (error: any) {
       return res.status(500).json({ error: 'Failed to process ad reward' });

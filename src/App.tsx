@@ -81,7 +81,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { bootstrapAdminStatusIfNeeded } from './lib/adminAuth';
 import { initLearnedLexicon, autoLearnMatchAnswers, learnWord } from './lib/learnedLexicon';
 import { LearnedLexiconModal } from './components/LearnedLexiconModal';
-import { AlertCircle, X, CheckCircle } from 'lucide-react';
+import { AlertCircle, X, CheckCircle, AlertTriangle } from 'lucide-react';
 
 // Helper to create or restore a fast offline guest profile
 const getInitialGuestProfile = (): UserProfile => {
@@ -288,6 +288,10 @@ export default function App() {
   // 3. Matchmaker: Quick Match (Realtime Firestore Queue with Fast Bot Fallback)
   const handleStartQuickMatch = async () => {
     if (!userProfile || !currentUser) return;
+    if (userProfile.isBanned) {
+      showAppToast('عذراً، هذا الحساب محظور من اللعب من قبل إدارة اللعبة لمخالفة الشروط.', 'error');
+      return;
+    }
     if ((userProfile.gems || 0) < 5) {
       showAppToast('عفواً، يتطلب دخول التحدي السريع تذكرة مشاركة بـ 5 جواهر 💎. يمكنك الحصول على باقات الجواهر من المتجر!', 'error');
       handleOpenShop('gems');
@@ -436,6 +440,7 @@ export default function App() {
   // 4. Friend Challenge (Room Creation / Join)
   const handleCreateFriendRoom = async (): Promise<string> => {
     if (!userProfile || !currentUser) throw new Error('يرجى تسجيل الدخول أولاً');
+    if (userProfile.isBanned) throw new Error('عذراً، هذا الحساب محظور من اللعب من قبل إدارة اللعبة.');
     if ((userProfile.gems || 0) < 15) throw new Error('يتطلب إنشاء الغرفة تذكرة استضافة بـ 15 جوهرة 💎');
     if ((userProfile.stars || 0) < 20) throw new Error('رصيد نجوم التحدي غير كافٍ (تحتاج 20 ⭐ للرهان)');
 
@@ -485,6 +490,7 @@ export default function App() {
 
   const handleJoinFriendRoom = async (code: string) => {
     if (!userProfile || !currentUser) throw new Error('يرجى تسجيل الدخول');
+    if (userProfile.isBanned) throw new Error('عذراً، هذا الحساب محظور من اللعب من قبل إدارة اللعبة.');
     if (userProfile.stars < 20) throw new Error('رصيد نجوم التحدي غير كافٍ (تحتاج 20 ⭐)');
 
     const q = query(collection(db, 'matches'), where('code', '==', code.trim().toUpperCase()));
@@ -545,6 +551,10 @@ export default function App() {
   // 5. Bot Match
   const startBotMatchInternal = (isWagered: boolean) => {
     if (!userProfile || !currentUser) return;
+    if (userProfile.isBanned) {
+      showAppToast('عذراً، هذا الحساب محظور حالياً من اللعب من قبل إدارة اللعبة.', 'error');
+      return;
+    }
     
     const botId = 'bot_aljadwal';
     const botNames = ['روبوت_الجدول_الذكي', 'بطل_الحروف_الآلي', 'المتحدي_العربي'];
@@ -1671,6 +1681,21 @@ export default function App() {
 
         {/* Main Content Area */}
         <main className="flex-1 pb-12">
+          {userProfile?.isBanned && (
+            <div className="max-w-4xl mx-auto px-4 pt-4">
+              <div className="bg-rose-950/90 border-2 border-rose-500/70 p-4 rounded-2xl text-center space-y-1.5 shadow-2xl animate-in fade-in">
+                <div className="flex items-center justify-center gap-2 text-rose-300 font-black text-sm">
+                  <AlertTriangle className="w-5 h-5 text-rose-400" />
+                  <span>تنبيه أمني: الحساب محظور من المشاركة في المباريات</span>
+                </div>
+                <p className="text-xs text-rose-200/90 leading-relaxed">
+                  تم تعليق هذا الحساب لمخالفة شروط وسياسات اللعب النظيف. إذا كنت تعتقد أن هذا الإجراء تم بالخطأ، يرجى التواصل مع إدارة اللعبة:
+                  <span className="font-mono text-white mr-1 underline">samergafer22@gmail.com</span>
+                </p>
+              </div>
+            </div>
+          )}
+
           {isMatchActive && currentMatch ? (
             /* ACTIVE MATCH VIEW */
             <div className="pt-4">

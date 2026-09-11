@@ -1096,6 +1096,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                             onClick={() => {
                               soundManager.playClick();
                               setSelectedUser(user);
+                              setExactStarsInput(String(user.stars ?? 0));
+                              setExactGemsInput(String(user.gems ?? 0));
+                              setExactHintsInput(String(user.hints ?? 3));
+                              setCustomWinsInput(String(user.stats?.wins ?? 0));
+                              setCustomScoreInput(String(user.stats?.highestScore ?? 0));
                             }}
                             className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 text-xs font-bold transition-all border border-slate-700 flex items-center gap-1"
                           >
