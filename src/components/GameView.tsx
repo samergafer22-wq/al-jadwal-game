@@ -183,22 +183,11 @@ export const GameView: React.FC<GameViewProps> = ({
           <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
         </button>
 
-        <div className="flex items-center gap-3">
-          {onSendChat && (
-            <QuickChatWidget
-              match={match}
-              currentUser={currentUser}
-              onSendChat={onSendChat}
-              position="inline"
-            />
-          )}
-
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="font-bold text-slate-300">
-              {match.isBotMatch ? 'تدريب مع الذكاء الاصطناعي' : 'مباراة مباشرة'}
-            </span>
-          </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="font-bold text-slate-300">
+            {match.isBotMatch ? 'تدريب مع الذكاء الاصطناعي' : 'مباراة مباشرة'}
+          </span>
         </div>
       </div>
 
@@ -474,6 +463,16 @@ export const GameView: React.FC<GameViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Quick Chat Interaction Widget for in-game reactions */}
+      {onSendChat && (
+        <QuickChatWidget
+          match={match}
+          currentUser={currentUser}
+          onSendChat={onSendChat}
+          position="floating"
+        />
       )}
 
     </div>

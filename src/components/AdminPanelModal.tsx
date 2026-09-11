@@ -45,6 +45,7 @@ import {
   fetchAllUsers, 
   adminUpdateUser, 
   adminUnlockAllCategoriesForUser, 
+  adminToggleCategoryForUser,
   grantSuperAdminResources, 
   fetchAdminMatches, 
   adminForceMatchStatus, 
@@ -88,6 +89,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [starsDelta, setStarsDelta] = useState<number>(500);
   const [gemsDelta, setGemsDelta] = useState<number>(100);
   const [hintsDelta, setHintsDelta] = useState<number>(10);
+  const [exactStarsInput, setExactStarsInput] = useState<string>('');
+  const [exactGemsInput, setExactGemsInput] = useState<string>('');
+  const [exactHintsInput, setExactHintsInput] = useState<string>('');
+  const [customWinsInput, setCustomWinsInput] = useState<string>('');
+  const [customScoreInput, setCustomScoreInput] = useState<string>('');
+  const [showAdvancedBoardControls, setShowAdvancedBoardControls] = useState<boolean>(true);
 
   // Matches State
   const [matchesList, setMatchesList] = useState<MatchData[]>([]);
@@ -264,6 +271,68 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
       if (selectedUser?.uid === user.uid) setSelectedUser({ ...selectedUser, stats: zeroStats });
     } catch (err) {
       showToast('فشل تصفير الإحصائيات', 'error');
+    }
+  };
+
+  const handleToggleUserCategory = async (user: UserProfile, categoryId: string) => {
+    try {
+      const current = user.unlockedCategories || [];
+      const updated = await adminToggleCategoryForUser(user.uid, categoryId, current);
+      showToast(`تم تحديث فئات لوحة اللاعب ${user.displayName}`);
+      setUsersList(prev => prev.map(u => u.uid === user.uid ? { ...u, unlockedCategories: updated } : u));
+      if (selectedUser?.uid === user.uid) setSelectedUser({ ...selectedUser, unlockedCategories: updated });
+    } catch {
+      showToast('فشل تعديل الفئة', 'error');
+    }
+  };
+
+  const handleSetExactBalance = async (user: UserProfile, type: 'stars' | 'gems' | 'hints', valueStr: string) => {
+    const num = parseInt(valueStr, 10);
+    if (isNaN(num) || num < 0) {
+      showToast('يرجى كتابة رقم صحيح موجب', 'error');
+      return;
+    }
+    try {
+      await adminUpdateUser(user.uid, { [type]: num });
+      showToast(`تم تعيين ${type === 'stars' ? 'النجوم' : type === 'gems' ? 'الجواهر' : 'التلميحات'} إلى ${num} ⭐`);
+      setUsersList(prev => prev.map(u => u.uid === user.uid ? { ...u, [type]: num } : u));
+      if (selectedUser?.uid === user.uid) setSelectedUser({ ...selectedUser, [type]: num });
+      if (type === 'stars') setExactStarsInput('');
+      if (type === 'gems') setExactGemsInput('');
+      if (type === 'hints') setExactHintsInput('');
+    } catch {
+      showToast('فشل تعيين الرصيد', 'error');
+    }
+  };
+
+  const handleUpdatePlayerStats = async (user: UserProfile) => {
+    const wins = customWinsInput !== '' ? parseInt(customWinsInput, 10) : (user.stats?.wins || 0);
+    const score = customScoreInput !== '' ? parseInt(customScoreInput, 10) : (user.stats?.highestScore || 0);
+    if (isNaN(wins) || isNaN(score)) {
+      showToast('يرجى إدخال أرقام صحيحة للإحصائيات', 'error');
+      return;
+    }
+    try {
+      const currentStats = user.stats || {
+        wins: 0,
+        losses: 0,
+        totalMatches: 0,
+        roundsWon: 0,
+        highestScore: 0,
+      };
+      const updatedStats = {
+        ...currentStats,
+        wins: Math.max(0, wins),
+        highestScore: Math.max(0, score),
+      };
+      await adminUpdateUser(user.uid, { stats: updatedStats });
+      showToast(`تم تحديث لوحة إحصائيات ${user.displayName}`);
+      setUsersList(prev => prev.map(u => u.uid === user.uid ? { ...u, stats: updatedStats } : u));
+      if (selectedUser?.uid === user.uid) setSelectedUser({ ...selectedUser, stats: updatedStats });
+      setCustomWinsInput('');
+      setCustomScoreInput('');
+    } catch {
+      showToast('فشل تحديث الإحصائيات', 'error');
     }
   };
 
@@ -703,18 +772,240 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         </button>
                       </div>
                     </div>
+                    {/* Exact Balance Control Panel */}
+                    <div className="sm:col-span-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                          <Coins className="w-4 h-4" />
+                          <span>التحكم المباشر الدقيق في الأرصدة (قيمة مخصصة)</span>
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          أدخل القيمة ثم اضغط "تعيين" لضبط الرصيد أو "+ إضافة"
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {/* Exact Stars */}
+                        <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="نجوم مخصصة..."
+                            value={exactStarsInput}
+                            onChange={(e) => setExactStarsInput(e.target.value)}
+                            className="w-full bg-transparent px-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleSetExactBalance(selectedUser, 'stars', exactStarsInput)}
+                            className="px-2.5 py-1 bg-amber-500 text-slate-950 text-[10px] font-black rounded-lg hover:bg-amber-400 shrink-0"
+                            title="تعيين الرصيد تماماً لهذه القيمة"
+                          >
+                            تعيين
+                          </button>
+                          <button
+                            onClick={() => {
+                              const num = parseInt(exactStarsInput, 10);
+                              if (!isNaN(num)) handleModifyStars(selectedUser, num);
+                            }}
+                            className="px-2 py-1 bg-amber-500/20 text-amber-300 text-[10px] font-black rounded-lg hover:bg-amber-500 hover:text-slate-950 shrink-0"
+                            title="إضافة هذه القيمة للرصيد الحالي"
+                          >
+                            + إضافة
+                          </button>
+                        </div>
+
+                        {/* Exact Gems */}
+                        <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="جواهر مخصصة..."
+                            value={exactGemsInput}
+                            onChange={(e) => setExactGemsInput(e.target.value)}
+                            className="w-full bg-transparent px-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleSetExactBalance(selectedUser, 'gems', exactGemsInput)}
+                            className="px-2.5 py-1 bg-cyan-500 text-slate-950 text-[10px] font-black rounded-lg hover:bg-cyan-400 shrink-0"
+                          >
+                            تعيين
+                          </button>
+                          <button
+                            onClick={() => {
+                              const num = parseInt(exactGemsInput, 10);
+                              if (!isNaN(num)) handleModifyGems(selectedUser, num);
+                            }}
+                            className="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-[10px] font-black rounded-lg hover:bg-cyan-500 hover:text-slate-950 shrink-0"
+                          >
+                            + إضافة
+                          </button>
+                        </div>
+
+                        {/* Exact Hints */}
+                        <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="تلميحات مخصصة..."
+                            value={exactHintsInput}
+                            onChange={(e) => setExactHintsInput(e.target.value)}
+                            className="w-full bg-transparent px-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleSetExactBalance(selectedUser, 'hints', exactHintsInput)}
+                            className="px-2.5 py-1 bg-indigo-500 text-white text-[10px] font-black rounded-lg hover:bg-indigo-400 shrink-0"
+                          >
+                            تعيين
+                          </button>
+                          <button
+                            onClick={() => {
+                              const num = parseInt(exactHintsInput, 10);
+                              if (!isNaN(num)) handleModifyHints(selectedUser, num);
+                            }}
+                            className="px-2 py-1 bg-indigo-500/20 text-indigo-300 text-[10px] font-black rounded-lg hover:bg-indigo-500 hover:text-white shrink-0"
+                          >
+                            + إضافة
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Player Category Board Manager (All 16 Categories) */}
+                  <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                          <Unlock className="w-4 h-4" />
+                          <span>إدارة لوحة الفئات للاعب (16 فئة)</span>
+                        </span>
+                        <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                          المفتوح: {(selectedUser.unlockedCategories || ['name', 'animal', 'plant', 'inanimate', 'country']).length} / 16
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUnlockAllForUser(selectedUser)}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 text-[11px] font-bold flex items-center gap-1 transition-colors border border-emerald-500/40"
+                        >
+                          <Unlock className="w-3 h-3" />
+                          <span>فتح جميع الـ 16 فئة</span>
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const default5 = ['name', 'animal', 'plant', 'inanimate', 'country'];
+                            await adminUpdateUser(selectedUser.uid, { unlockedCategories: default5 });
+                            showToast('تمت إعادة تعيين فئات اللاعب إلى الأساسية الـ 5');
+                            setUsersList(prev => prev.map(u => u.uid === selectedUser.uid ? { ...u, unlockedCategories: default5 } : u));
+                            setSelectedUser({ ...selectedUser, unlockedCategories: default5 });
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition-colors border border-slate-700"
+                        >
+                          إعادة للأساسية (5)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 16 Category Chips (Click to toggle) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1.5">
+                      {[...STANDARD_CATEGORIES, ...EXTRA_CATEGORIES].map(cat => {
+                        const isUnlocked = (selectedUser.unlockedCategories || ['name', 'animal', 'plant', 'inanimate', 'country']).includes(cat.id);
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => handleToggleUserCategory(selectedUser, cat.id)}
+                            className={`p-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border text-center ${
+                              isUnlocked
+                                ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-200 hover:border-emerald-400'
+                                : 'bg-slate-950/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                            }`}
+                            title={isUnlocked ? 'انقر للقفل' : 'انقر للفتح'}
+                          >
+                            <div className="flex items-center gap-1">
+                              {isUnlocked ? (
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                              ) : (
+                                <Lock className="w-3 h-3 text-slate-500 shrink-0" />
+                              )}
+                              <span className="truncate max-w-[80px] text-[11px]">{cat.label.split(' ')[0]}</span>
+                            </div>
+                            <span className="text-[9px] opacity-75">{isUnlocked ? 'مفتوحة' : 'مقفلة'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Player Board Statistics Editor */}
+                  <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                        <Trophy className="w-4 h-4" />
+                        <span>لوحة إحصائيات اللاعب وسجل النتائج</span>
+                      </span>
+                      <button
+                        onClick={() => handleResetPlayerStats(selectedUser)}
+                        className="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-600 text-rose-300 hover:text-white text-[11px] font-bold flex items-center gap-1 transition-colors border border-rose-500/30"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>تصفير الإحصائيات كاملاً</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">الانتصارات</span>
+                        <strong className="text-emerald-400 text-sm">{selectedUser.stats?.wins || 0}</strong>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">الهزائم</span>
+                        <strong className="text-rose-400 text-sm">{selectedUser.stats?.losses || 0}</strong>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">أعلى سكور</span>
+                        <strong className="text-amber-400 text-sm">{selectedUser.stats?.highestScore || 0}</strong>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                        <span className="text-slate-400 block text-[10px]">إجمالي المباريات</span>
+                        <strong className="text-cyan-400 text-sm">{selectedUser.stats?.totalMatches || 0}</strong>
+                      </div>
+                    </div>
+
+                    {/* Stats Custom Override Inputs */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400">الفوز:</span>
+                        <input
+                          type="number"
+                          placeholder={String(selectedUser.stats?.wins || 0)}
+                          value={customWinsInput}
+                          onChange={(e) => setCustomWinsInput(e.target.value)}
+                          className="w-16 bg-transparent text-xs text-white focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400">أعلى سكور:</span>
+                        <input
+                          type="number"
+                          placeholder={String(selectedUser.stats?.highestScore || 0)}
+                          value={customScoreInput}
+                          onChange={(e) => setCustomScoreInput(e.target.value)}
+                          className="w-20 bg-transparent text-xs text-white focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleUpdatePlayerStats(selectedUser)}
+                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md"
+                      >
+                        حفظ الإحصائيات
+                      </button>
+                    </div>
                   </div>
 
                   {/* Actions Row */}
                   <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800">
-                    <button
-                      onClick={() => handleUnlockAllForUser(selectedUser)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-colors border border-emerald-500/30"
-                    >
-                      <Unlock className="w-3.5 h-3.5" />
-                      <span>فتح جميع الفئات الـ 16 كاملة</span>
-                    </button>
-
                     <button
                       onClick={() => handleToggleAdminRole(selectedUser)}
                       className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-colors border border-amber-500/30"
@@ -735,14 +1026,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     >
                       <UserX className="w-3.5 h-3.5" />
                       <span>{selectedUser.isBanned ? 'إلغاء الحظر' : 'حظر الحساب'}</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleResetPlayerStats(selectedUser)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 text-xs font-bold flex items-center gap-1.5 transition-colors border border-slate-700"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>تصفير الإحصائيات</span>
                     </button>
                   </div>
                 </div>

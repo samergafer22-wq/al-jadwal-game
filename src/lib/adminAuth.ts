@@ -38,27 +38,28 @@ export function checkIsAdmin(user: UserProfile | { email?: string | null; role?:
 export async function bootstrapAdminStatusIfNeeded(userProfile: UserProfile): Promise<boolean> {
   const email = (userProfile.email || auth.currentUser?.email || '').trim().toLowerCase();
   if (email === PRIMARY_ADMIN_EMAIL.toLowerCase() || ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
-    if (userProfile.role !== 'admin' || !userProfile.isAdmin) {
-      try {
-        const userRef = doc(db, 'users', userProfile.uid);
-        await updateDoc(userRef, {
-          role: 'admin',
-          isAdmin: true,
-        });
+    userProfile.role = 'admin';
+    userProfile.isAdmin = true;
 
-        // Also ensure admin doc in /admins collection
-        const adminRef = doc(db, 'admins', userProfile.uid);
-        await setDoc(adminRef, {
-          uid: userProfile.uid,
-          email: userProfile.email || PRIMARY_ADMIN_EMAIL,
-          role: 'admin',
-          grantedAt: Date.now(),
-        }, { merge: true });
+    try {
+      const userRef = doc(db, 'users', userProfile.uid);
+      await setDoc(userRef, {
+        role: 'admin',
+        isAdmin: true,
+      }, { merge: true });
 
-        return true;
-      } catch (err) {
-        console.warn('Failed to auto-grant admin document:', err);
-      }
+      // Also ensure admin doc in /admins collection
+      const adminRef = doc(db, 'admins', userProfile.uid);
+      await setDoc(adminRef, {
+        uid: userProfile.uid,
+        email: userProfile.email || PRIMARY_ADMIN_EMAIL,
+        role: 'admin',
+        grantedAt: Date.now(),
+      }, { merge: true });
+
+      return true;
+    } catch (err) {
+      console.warn('Failed to auto-grant admin document:', err);
     }
     return true;
   }
@@ -75,14 +76,14 @@ export async function grantSuperAdminResources(userId: string): Promise<void> {
   ];
 
   const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
+  await setDoc(userRef, {
     stars: 99999,
     gems: 9999,
     hints: 99,
     unlockedCategories: allCategoryIds,
     role: 'admin',
     isAdmin: true,
-  });
+  }, { merge: true });
 
   const adminRef = doc(db, 'admins', userId);
   await setDoc(adminRef, {
@@ -110,7 +111,7 @@ export async function fetchAllUsers(maxUsers = 50): Promise<UserProfile[]> {
 }
 
 /**
- * Modify any user's balance or permissions.
+ * Modify any user's balance, board, stats, or permissions.
  */
 export async function adminUpdateUser(
   userId: string, 
@@ -133,7 +134,7 @@ export async function adminUpdateUser(
     delete patch.resetStats;
   }
 
-  await updateDoc(userRef, patch);
+  await setDoc(userRef, patch, { merge: true });
 
   if (updates.role === 'admin' || updates.isAdmin === true) {
     const adminRef = doc(db, 'admins', userId);
@@ -160,9 +161,30 @@ export async function adminUnlockAllCategoriesForUser(userId: string): Promise<v
     ...EXTRA_CATEGORIES.map(c => c.id)
   ];
   const userRef = doc(db, 'users', userId);
-  await updateDoc(userRef, {
+  await setDoc(userRef, {
     unlockedCategories: allCategoryIds,
-  });
+  }, { merge: true });
+}
+
+/**
+ * Toggle a specific category on or off for a given user.
+ */
+export async function adminToggleCategoryForUser(
+  userId: string,
+  categoryId: string,
+  currentUnlocked: string[]
+): Promise<string[]> {
+  const isUnlocked = currentUnlocked.includes(categoryId);
+  const nextUnlocked = isUnlocked
+    ? currentUnlocked.filter(c => c !== categoryId)
+    : [...currentUnlocked, categoryId];
+
+  const userRef = doc(db, 'users', userId);
+  await setDoc(userRef, {
+    unlockedCategories: nextUnlocked,
+  }, { merge: true });
+
+  return nextUnlocked;
 }
 
 /**
